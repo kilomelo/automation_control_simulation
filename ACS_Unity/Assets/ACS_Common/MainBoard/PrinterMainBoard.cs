@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using ACS_Common.Base;
 using ACS_Common.Driver;
+using ACS_Common.GCodeParser;
 using UnityEngine;
 
 namespace ACS_Common.MainBoard
@@ -17,36 +18,37 @@ namespace ACS_Common.MainBoard
         [SerializeField] private StepMotorDriverBehaviour _stepMotorDriverZ;
         [SerializeField] private StepMotorDriverBehaviour _stepMotorDriverE;
 
-        public string testRegex = @"\bS\S*";
+        private string testRegex = @"(?<=^|\n|\r)\s*[GgMm]([1-9]+[0-9]*|0)\s[\s\S]*?(?=$|\n|\r)";
         // private Regex _gCodeRegex = new Regex();
         /// <summary>
         /// 发送GCode
         /// </summary>
         /// <param name="code"></param>
-        public void SendGCode(string code)
+        public void SendGCode(GCommand command)
         {
-            Debug.Log($"{Tag} SendGCode, code: {code}");
+            Debug.Log($"{Tag} SendGCode, code: {command}");
 
             // var matches = _gCodeRegex.Matches(code);
-            var matches = Regex.Matches(code, testRegex);
-            if (matches.Count > 0)
-            {
-                foreach (var match in matches)
-                {
-                    Debug.Log($"{Tag} match: {match}");
-                }
-            }
-            else
-            {
-                Debug.LogError($"{Tag} SendGCode with invalid code");
-            }
+            
         }
 
-        public string testCode;
+        public TextAsset testCodeFile;
 
         private void OnEnable()
         {
-            SendGCode(testCode);
+            if (null == testCodeFile)
+            {
+                Debug.LogError($"{Tag} test code file is null");
+                return;
+            }
+            Debug.Log("textFile content:");
+            Debug.Log(testCodeFile.text);
+            var testCommands = GTools.GCommandsFromString(testCodeFile.text);
+            foreach (var command in testCommands)
+            {
+                SendGCode(command);
+            }
+            
         }
     }
 }
