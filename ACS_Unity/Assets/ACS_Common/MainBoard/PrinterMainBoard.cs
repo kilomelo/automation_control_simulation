@@ -18,7 +18,7 @@ namespace ACS_Common.MainBoard
         [SerializeField] private StepMotorDriverBehaviour _stepMotorDriverZ;
         [SerializeField] private StepMotorDriverBehaviour _stepMotorDriverE;
 
-        private string testRegex = @"(?<=^|\n|\r)\s*[GgMm]([1-9]+[0-9]*|0)\s[\s\S]*?(?=$|\n|\r)";
+        private string testRegex = @"(?<=^|\n|\r)[GgMm]([1-9]+[0-9]*|0)\s[\s\S]*?(?=$|\n|\r)";
         // private Regex _gCodeRegex = new Regex();
         /// <summary>
         /// 发送GCode
@@ -27,8 +27,6 @@ namespace ACS_Common.MainBoard
         public void SendGCode(GCommand command)
         {
             Debug.Log($"{Tag} SendGCode, code: {command}");
-
-            // var matches = _gCodeRegex.Matches(code);
             
         }
 
@@ -43,12 +41,7 @@ namespace ACS_Common.MainBoard
             }
             Debug.Log("textFile content:");
             Debug.Log(testCodeFile.text);
-            var testCommands = GTools.GCommandsFromString(testCodeFile.text);
-            foreach (var command in testCommands)
-            {
-                SendGCode(command);
-            }
-            
+            var testCommands = GTools.GCommandsFromText(testCodeFile.text);
         }
     }
 }

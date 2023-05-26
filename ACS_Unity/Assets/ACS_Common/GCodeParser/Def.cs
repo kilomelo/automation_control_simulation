@@ -8,8 +8,8 @@ namespace ACS_Common.GCodeParser
         public enum EGCommandType : byte
         {
             Invalid = 0,
-            G = 1,
-            M = 2,
+            G = 2,
+            M = 3,
         }
     }
 }
