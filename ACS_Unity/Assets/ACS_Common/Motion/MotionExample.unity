@@ -941,7 +941,7 @@ MonoBehaviour:
   _stepMotorDriverY: {fileID: 0}
   _stepMotorDriverZ: {fileID: 0}
   _stepMotorDriverE: {fileID: 0}
-  testCodeFile: {fileID: 4900000, guid: 2c44b293980d9d744bb31f13172cc2f2, type: 3}
+  GCodeFilePath: Assets/ACS_Common/GCodeParser/testGCode.txt
 --- !u!4 &1937352546
 Transform:
   m_ObjectHideFlags: 0

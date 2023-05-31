@@ -18,8 +18,6 @@ namespace ACS_Common.MainBoard
         [SerializeField] private StepMotorDriverBehaviour _stepMotorDriverZ;
         [SerializeField] private StepMotorDriverBehaviour _stepMotorDriverE;
 
-        private string testRegex = @"(?<=^|\n|\r)[GgMm]([1-9]+[0-9]*|0)\s[\s\S]*?(?=$|\n|\r)";
-        // private Regex _gCodeRegex = new Regex();
         /// <summary>
         /// 发送GCode
         /// </summary>
@@ -30,18 +28,31 @@ namespace ACS_Common.MainBoard
             
         }
 
-        public TextAsset testCodeFile;
+        // public TextAsset testCodeFile;
+
+        // private void OnEnable()
+        // {
+        //     if (null == testCodeFile)
+        //     {
+        //         Debug.LogError($"{Tag} test code file is null");
+        //         return;
+        //     }
+        //     Debug.Log("textFile content:");
+        //     Debug.Log(testCodeFile.text);
+        //     var testCommands = GTools.GCommandsFromText(testCodeFile.text);
+        // }
+
+        public string GCodeFilePath;
 
         private void OnEnable()
         {
-            if (null == testCodeFile)
+            if (string.IsNullOrEmpty(GCodeFilePath))
             {
-                Debug.LogError($"{Tag} test code file is null");
+                Debug.LogError($"{Tag}, test gcode file path is empty");
                 return;
             }
-            Debug.Log("textFile content:");
-            Debug.Log(testCodeFile.text);
-            var testCommands = GTools.GCommandsFromText(testCodeFile.text);
+
+            var testCommand = GTools.GCommandFromFile(GCodeFilePath);
         }
     }
 }

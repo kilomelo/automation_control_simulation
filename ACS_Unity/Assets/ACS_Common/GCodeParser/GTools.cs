@@ -10,23 +10,44 @@ namespace ACS_Common.GCodeParser
         private const string Tag = nameof(GTools);
 
         /// <summary>
-        /// 文本分割为行 正则表达式
+        /// 文本分割为行 正则
         /// </summary>
         private const string RegexLinesSplit = @"(?<=^|\r|\n|\r\n)\S.*(?=$|\r|\n|\r\n)";
         /// <summary>
-        /// GCode 命令正则表达式
+        /// GCode 命令正则
         /// </summary>
-        private const string RegexGCodeCommandCheck = @"[GgMm]([1-9]+[0-9]*|0)(?!\S)\s*.*?(?=\s*($|;))";
+        private const string RegexGCodeCommandCheck = @"(?<=^)[GgMm][0-9]+(?!\S)\s*?.*?(?=\s*($|;))";
         /// <summary>
-        /// GCode 注释正则表达式
+        /// GCode 注释正则
         /// </summary>
         private const string RegexGCodeCommentCheck = @"(?<=;\s*)([^\s].+[^\s]|\S?\S)";
+        /// <summary>
+        /// GCode 命令类型正则
+        /// </summary>
+        public const string RegexGCodeCommentType = @"[GgMm]";
+        /// <summary>
+        /// GCode 命令数字正则
+        /// </summary>
+        public const string RegexGCodeCommentNumber = @"(?<=[GgMm])[0-9]+(?=\s|$|;)";
+        /// <summary>
+        /// GCode 参数正则
+        /// </summary>
+        public const string RegexGCodeCommentParam = @"(?<=\s)\S+(?=$|\s)";
+        /// <summary>
+        /// GCode 参数名正则
+        /// </summary>
+        public const string RegexGCodeCommentParamName = @"(?<=^)[A-Z|a-z]";
+        /// <summary>
+        /// GCode 参数值正则
+        /// </summary>
+        public const string RegexGCodeCommentParamValue = @"(?<=^[A-Z|a-z])-?[0-9]*.?[0-9]*(?=$)";
+        
         /// <summary>
         /// 从文本生成GCode命令集
         /// </summary>
         /// <param name="text">包含gcode的文本</param>
         /// <returns></returns>
-        public static GCommandSet GCommandsFromText(string text)
+        public static GCommandStream GCommandsFromText(string text)
         {
             Debug.Log($"{Tag} GCommandsFromString, len: {text.Length}, text: {text}");
             if (string.IsNullOrEmpty(text))
@@ -46,17 +67,18 @@ namespace ACS_Common.GCodeParser
                 var str = line.ToString();
                 Debug.Log($"{Tag} GCommandsFromString [{i}] {line}");
                 rawTextLiens.Add(str);
-                var command = Regex.Matches(str, RegexGCodeCommandCheck);
-                if (command.Count > 0)
+                var commandMatches = Regex.Matches(str, RegexGCodeCommandCheck);
+                if (commandMatches.Count > 0)
                 {
-                    if (command.Count > 1)
+                    if (commandMatches.Count > 1)
                     {
                         Debug.LogError($"{Tag} GCommandsFromString, line [{i}] contains multiple GCode? what happened?");
                     }
                     else
                     {
-                        Debug.Log($"{Tag} GCommandsFromString, line [{i}] contains GCode");
-                        commands.Add(i, new GCommand(command[0].ToString()));
+                        var command = new GCommand(commandMatches[0].ToString());
+                        Debug.Log($"{Tag} GCommandsFromString, line [{i}] contains GCode command: {command}");
+                        commands.Add(i, command);
                     }
                 }
                 else
@@ -82,7 +104,32 @@ namespace ACS_Common.GCodeParser
                 }
                 i++;
             }
-            return new GCommandSet(rawTextLiens, commands, comments);
+            return new GCommandStream(rawTextLiens, commands, comments);
+        }
+
+        /// <summary>
+        /// 从文件创建流式命令
+        /// </summary>
+        /// <param name="filePath"></param>
+        /// <returns></returns>
+        public static GCommandStream GCommandFromFile(string filePath)
+        {
+            // using var fs = new StreamReader(filePath);
+            try
+            {
+                using var sr = new StreamReader(filePath);
+                var content = sr.ReadLine();
+                while(null != content)
+                {
+                    Debug.Log(content);
+                    content = sr.ReadLine();
+                }
+            }
+            catch(IOException e)
+            {
+                Debug.LogError($"{Tag} GCommandFromFile, read file failed with message: \n{e}");
+            }
+            return null;
         }
     }
 }
