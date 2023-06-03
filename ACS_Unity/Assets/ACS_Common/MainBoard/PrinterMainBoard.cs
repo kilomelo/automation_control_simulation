@@ -18,6 +18,8 @@ namespace ACS_Common.MainBoard
         [SerializeField] private StepMotorDriverBehaviour _stepMotorDriverZ;
         [SerializeField] private StepMotorDriverBehaviour _stepMotorDriverE;
 
+        public GCommandStream CommandStream;
+
         /// <summary>
         /// 发送GCode
         /// </summary>
@@ -52,7 +54,7 @@ namespace ACS_Common.MainBoard
                 return;
             }
 
-            var testCommand = GTools.GCommandFromFile(GCodeFilePath);
+            CommandStream = GTools.GCommandFromFile(GCodeFilePath);
         }
     }
 }

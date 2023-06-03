@@ -941,7 +941,7 @@ MonoBehaviour:
   _stepMotorDriverY: {fileID: 0}
   _stepMotorDriverZ: {fileID: 0}
   _stepMotorDriverE: {fileID: 0}
-  GCodeFilePath: Assets/ACS_Common/GCodeParser/testGCode.txt
+  GCodeFilePath: Assets/ACS_Common/GCodeParser/3DBenchy.txt
 --- !u!4 &1937352546
 Transform:
   m_ObjectHideFlags: 0

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
+using ACS_Common.Utils;
 using UnityEngine;
 
 namespace ACS_Common.GCodeParser
@@ -105,7 +106,7 @@ namespace ACS_Common.GCodeParser
     /// <summary>
     /// 流式 GCode 命令集合
     /// </summary>
-    public class GCommandStream
+    public class GCommandStream : TextFileStream
     {
         /// <summary>
         /// 原始文本数据
@@ -120,11 +121,15 @@ namespace ACS_Common.GCodeParser
         /// </summary>
         private Dictionary<int, string> _comments;
 
-        public GCommandStream(List<string> rawTextLiens, Dictionary<int, GCommand> commands, Dictionary<int, string> comments)
+        // public GCommandStream(List<string> rawTextLiens, Dictionary<int, GCommand> commands, Dictionary<int, string> comments) : base()
+        // {
+        //     _rawTextLiens = rawTextLiens;
+        //     _commands = commands;
+        //     _comments = comments;
+        // }
+
+        public GCommandStream(string textFilePath) : base(textFilePath)
         {
-            _rawTextLiens = rawTextLiens;
-            _commands = commands;
-            _comments = comments;
         }
     }
 }

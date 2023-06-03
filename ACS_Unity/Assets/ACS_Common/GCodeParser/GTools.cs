@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
+using ACS_Common.Utils;
 using UnityEngine;
 
 namespace ACS_Common.GCodeParser
@@ -47,65 +48,65 @@ namespace ACS_Common.GCodeParser
         /// </summary>
         /// <param name="text">包含gcode的文本</param>
         /// <returns></returns>
-        public static GCommandStream GCommandsFromText(string text)
-        {
-            Debug.Log($"{Tag} GCommandsFromString, len: {text.Length}, text: {text}");
-            if (string.IsNullOrEmpty(text))
-            {
-                Debug.LogError($"{Tag} GCommandFromText, text is null or empty");
-                return null;
-            }
-            var lines = Regex.Matches(text, RegexLinesSplit);
-            Debug.Log($"{Tag} GCommandsFromString, total lines count: {lines.Count}");
-
-            List<string> rawTextLiens = new List<string>();
-            Dictionary<int, GCommand> commands = new Dictionary<int, GCommand>();
-            Dictionary<int, string> comments = new Dictionary<int, string>();
-            var i = 0;
-            foreach (var line in lines)
-            {
-                var str = line.ToString();
-                Debug.Log($"{Tag} GCommandsFromString [{i}] {line}");
-                rawTextLiens.Add(str);
-                var commandMatches = Regex.Matches(str, RegexGCodeCommandCheck);
-                if (commandMatches.Count > 0)
-                {
-                    if (commandMatches.Count > 1)
-                    {
-                        Debug.LogError($"{Tag} GCommandsFromString, line [{i}] contains multiple GCode? what happened?");
-                    }
-                    else
-                    {
-                        var command = new GCommand(commandMatches[0].ToString());
-                        Debug.Log($"{Tag} GCommandsFromString, line [{i}] contains GCode command: {command}");
-                        commands.Add(i, command);
-                    }
-                }
-                else
-                {
-                    Debug.Log($"{Tag} GCommandsFromString, line [{i}] NOT contains GCode");
-                }
-                var comment = Regex.Matches(str, RegexGCodeCommentCheck);
-                if (comment.Count > 0)
-                {
-                    if (comment.Count > 1)
-                    {
-                        Debug.LogError($"{Tag} GCommandsFromString, line [{i}] contains multiple comments? what happened?");
-                    }
-                    else
-                    {
-                        Debug.Log($"{Tag} GCommandsFromString, line [{i}] contains comment");
-                        comments.Add(i, comment[0].ToString());
-                    }
-                }
-                else
-                {
-                    Debug.Log($"{Tag} GCommandsFromString, line [{i}] NOT contains comment");
-                }
-                i++;
-            }
-            return new GCommandStream(rawTextLiens, commands, comments);
-        }
+        // public static GCommandStream GCommandsFromText(string text)
+        // {
+        //     Debug.Log($"{Tag} GCommandsFromString, len: {text.Length}, text: {text}");
+        //     if (string.IsNullOrEmpty(text))
+        //     {
+        //         Debug.LogError($"{Tag} GCommandFromText, text is null or empty");
+        //         return null;
+        //     }
+        //     var lines = Regex.Matches(text, RegexLinesSplit);
+        //     Debug.Log($"{Tag} GCommandsFromString, total lines count: {lines.Count}");
+        //
+        //     List<string> rawTextLiens = new List<string>();
+        //     Dictionary<int, GCommand> commands = new Dictionary<int, GCommand>();
+        //     Dictionary<int, string> comments = new Dictionary<int, string>();
+        //     var i = 0;
+        //     foreach (var line in lines)
+        //     {
+        //         var str = line.ToString();
+        //         Debug.Log($"{Tag} GCommandsFromString [{i}] {line}");
+        //         rawTextLiens.Add(str);
+        //         var commandMatches = Regex.Matches(str, RegexGCodeCommandCheck);
+        //         if (commandMatches.Count > 0)
+        //         {
+        //             if (commandMatches.Count > 1)
+        //             {
+        //                 Debug.LogError($"{Tag} GCommandsFromString, line [{i}] contains multiple GCode? what happened?");
+        //             }
+        //             else
+        //             {
+        //                 var command = new GCommand(commandMatches[0].ToString());
+        //                 Debug.Log($"{Tag} GCommandsFromString, line [{i}] contains GCode command: {command}");
+        //                 commands.Add(i, command);
+        //             }
+        //         }
+        //         else
+        //         {
+        //             Debug.Log($"{Tag} GCommandsFromString, line [{i}] NOT contains GCode");
+        //         }
+        //         var comment = Regex.Matches(str, RegexGCodeCommentCheck);
+        //         if (comment.Count > 0)
+        //         {
+        //             if (comment.Count > 1)
+        //             {
+        //                 Debug.LogError($"{Tag} GCommandsFromString, line [{i}] contains multiple comments? what happened?");
+        //             }
+        //             else
+        //             {
+        //                 Debug.Log($"{Tag} GCommandsFromString, line [{i}] contains comment");
+        //                 comments.Add(i, comment[0].ToString());
+        //             }
+        //         }
+        //         else
+        //         {
+        //             Debug.Log($"{Tag} GCommandsFromString, line [{i}] NOT contains comment");
+        //         }
+        //         i++;
+        //     }
+        //     return new GCommandStream(rawTextLiens, commands, comments);
+        // }
 
         /// <summary>
         /// 从文件创建流式命令
@@ -117,13 +118,18 @@ namespace ACS_Common.GCodeParser
             // using var fs = new StreamReader(filePath);
             try
             {
-                using var sr = new StreamReader(filePath);
-                var content = sr.ReadLine();
-                while(null != content)
-                {
-                    Debug.Log(content);
-                    content = sr.ReadLine();
-                }
+                // using var sr = new StreamReader(filePath);
+                // var content = sr.ReadLine();
+                // while(null != content)
+                // {
+                //     Debug.Log(content);
+                //     content = sr.ReadLine();
+                // }
+                // using var fs = new FileStream(filePath, FileMode.Open);
+                // var lineCnt = fs.CountLines();
+                // Debug.Log($"{Tag} line cnt: {lineCnt}");
+
+                var cs = new GCommandStream(filePath);
             }
             catch(IOException e)
             {
