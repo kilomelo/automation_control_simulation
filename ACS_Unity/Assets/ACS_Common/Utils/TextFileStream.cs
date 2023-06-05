@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using UnityEngine;
@@ -8,7 +10,7 @@ namespace ACS_Common.Utils
     /// <summary>
     /// 带索引搜索树的文本流，可提高大文本随机行读取效率
     /// </summary>
-    public class TextFileStream : IDisposable
+    public class TextFileStream : IDisposable, IEnumerable<string>
     {
         private const string Tag = nameof(TextFileStream);
 
@@ -18,7 +20,7 @@ namespace ACS_Common.Utils
         /// <summary>
         /// 一次读取缓存大小
         /// </summary>
-        private static int _byteBufferSize = 10 * 1024;
+        private static int _byteBufferSize = 1024 * 1024;
         
         /// <summary>
         /// 行号索引节点
@@ -262,6 +264,41 @@ namespace ACS_Common.Utils
             _stream?.Dispose();
             _lineIdxRoot = null;
             encoding = default;
+        }
+
+        public IEnumerator<string> GetEnumerator()
+        {
+            _stream.Position = 0;
+            var sr = new StreamReader(_stream);
+            while (true)
+            {
+                var line = sr.ReadLine();
+                if (null == line) yield break;
+                yield return line;
+            }
+        }
+
+        /// <summary>
+        /// 从特定行开始获得迭代器
+        /// </summary>
+        /// <param name="lineIdxOffset"></param>
+        /// <returns></returns>
+        public IEnumerator<string> GetEnumerator(long lineIdxOffset)
+        {
+            // todo get byte offset
+            _stream.Position = 0;
+            var sr = new StreamReader(_stream);
+            while (true)
+            {
+                var line = sr.ReadLine();
+                if (null == line) yield break;
+                yield return line;
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
         }
     }
 }

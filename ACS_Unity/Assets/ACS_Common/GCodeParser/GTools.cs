@@ -130,11 +130,13 @@ namespace ACS_Common.GCodeParser
                 // Debug.Log($"{Tag} line cnt: {lineCnt}");
 
                 var cs = new GCommandStream(filePath);
+                return cs;
             }
             catch(IOException e)
             {
                 Debug.LogError($"{Tag} GCommandFromFile, read file failed with message: \n{e}");
             }
+
             return null;
         }
     }

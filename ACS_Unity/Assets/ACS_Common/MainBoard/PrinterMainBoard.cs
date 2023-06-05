@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Text.RegularExpressions;
 using ACS_Common.Base;
 using ACS_Common.Driver;
@@ -55,6 +56,21 @@ namespace ACS_Common.MainBoard
             }
 
             CommandStream = GTools.GCommandFromFile(GCodeFilePath);
+            StartCoroutine(ReadLines());
+        }
+
+        private IEnumerator ReadLines()
+        {
+            Debug.Log($"{Tag}, ReadLines start");
+
+            var i = 0;
+            foreach (var line in CommandStream)
+            {
+                Debug.Log($"{Tag} {i}'s line: {line}");
+                i++;
+                yield return 0;
+            }
+            Debug.Log($"{Tag}, ReadLines end");
         }
     }
 }
