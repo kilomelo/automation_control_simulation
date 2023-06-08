@@ -62,14 +62,21 @@ namespace ACS_Common.MainBoard
         private IEnumerator ReadLines()
         {
             Debug.Log($"{Tag}, ReadLines start");
-
+            
+            using var itor = CommandStream.GetEnumerator(0);
             var i = 0;
-            foreach (var line in CommandStream)
+            while (itor.MoveNext())
             {
-                Debug.Log($"{Tag} {i}'s line: {line}");
-                i++;
+                Debug.Log($"{Tag} {i++}'s line: {itor.Current}");
                 yield return 0;
             }
+            // var i = 0;
+            // foreach (var line in CommandStream)
+            // {
+            //     Debug.Log($"{Tag} {i}'s line: {line}");
+            //     i++;
+            //     yield return 0;
+            // }
             Debug.Log($"{Tag}, ReadLines end");
         }
     }
