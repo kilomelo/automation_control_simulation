@@ -56,7 +56,9 @@ namespace ACS_Common.MainBoard
             }
 
             CommandStream = GTools.GCommandFromFile(GCodeFilePath);
-            StartCoroutine(ReadLines());
+            CommandStream.TestReadEachChar();
+            CommandStream.TestReadEachLine();
+            // StartCoroutine(ReadLines());
         }
 
         private IEnumerator ReadLines()
