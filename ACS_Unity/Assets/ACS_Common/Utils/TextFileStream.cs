@@ -1,9 +1,11 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Text;
-using UnityEngine;
+using System.Threading.Tasks;
+using Debug = UnityEngine.Debug;
 
 namespace ACS_Common.Utils
 {
@@ -17,10 +19,11 @@ namespace ACS_Common.Utils
         private const char CR = '\r';
         private const char LF = '\n';
         private const char NULL = (char)0;
+
         /// <summary>
         /// 一次读取缓存大小
         /// </summary>
-        private static int _byteBufferSize = 1024*1024;
+        private static int _byteBufferSize = 1*1024*1024;
         
         /// <summary>
         /// Start of Line offset
@@ -57,8 +60,10 @@ namespace ACS_Common.Utils
         private Encoding encoding;
         private byte[] _byteBuffer;
         private StringBuilder _sb;
-
+        // 总行数，这个值在建立索引后有效
         private long _totalLine;
+
+        private object _streamLock = new object();
         public TextFileStream(string textFilePath)
         {
             LogMethod($"constructor, textFilePath: {textFilePath}");
@@ -71,144 +76,138 @@ namespace ACS_Common.Utils
             catch(IOException e)
             {
                 LogErr($"constructor, read file failed with message: \n{e}");
+                return;
             }
-
             _stream = fs;
             _byteBuffer = new byte[_byteBufferSize];
             _sb = new StringBuilder();
-            BuildLineIdx();
+            BuildLineIdxAsync();
+            LogInfo("end of constructor");
         }
         
         public void Dispose()
         {
-            _stream?.Dispose();
-            _SOLOffsetIdxTreeRoot = null;
-            encoding = default;
-            _byteBuffer = null;
-            _sb = null;
+            lock (_streamLock)
+            {
+                _stream?.Dispose();
+                _SOLOffsetIdxTreeRoot = null;
+                encoding = default;
+                _byteBuffer = null;
+                _sb = null;
+            }
         }
 
         private delegate bool ActionEachChunk(long chunkIdx, long bytesRead);
         private delegate bool ActionEachChar(char c, long offset);
         private delegate bool ActionEachLine(long lineIdx, long offset);
-        private struct ReadPerCharResult
+        private struct ChunkReadReport
         {
-            public long ChunkCnt;
-            public long CharCnt;
+            public long ChunkIdx;
+            public long LastCharOffset;
             public char LastChar;
-            public bool Interrupted;
             public override string ToString()
             {
-                return $"[ReadPerCharResult: ChunkCnt: {ChunkCnt}, CharCnt: {CharCnt}, LastChar: [{LastChar}], Interrupted: {Interrupted}]";
-            }
-        }
-        private struct ReadPerLineResult
-        {
-            public long ChunkCnt;
-            public long LineCnt;
-            public char LastChar;
-            public bool Interrupted;
-            public override string ToString()
-            {
-                return $"[ReadPerCharResult: ChunkCnt: {ChunkCnt}, LineCnt: {LineCnt}, LastChar: [{LastChar}], Interrupted: {Interrupted}]";
+                return $"[ChunkReadReport: ChunkIdx: {ChunkIdx}, LastCharOffset: {LastCharOffset}, LastChar: [{LastChar}]";
             }
         }
         /// <summary>
         /// 逐字符读取steam，不重置steam位置
         /// </summary>
-        /// <param name="actionEachChunk"></param>
+        /// <param name="initialPos"></param>
         /// <param name="actionEachChar"></param>
         /// <returns></returns>
-        private ReadPerCharResult ReadEachChar(ActionEachChunk actionEachChunk, ActionEachChar actionEachChar)
+        private IEnumerator<ChunkReadReport> ReadEachChar(long initialPos, ActionEachChar actionEachChar)
         {
-            LogMethod($"ReadEachChar, encoding: {encoding}");
-            var initPos = _stream.Position;
-            var currentChar = NULL;
-            int bytesRead;
-            var chunkCnt = 0L;
-            if (encoding is null || Equals(encoding, Encoding.ASCII) || Equals(encoding, Encoding.UTF8))
+            LogMethod($"ReadEachChar, initialPos: {initialPos}, actionEachChar: {actionEachChar}, encoding: {encoding}");
+            LogInfo($"ReadEachChar, before lock");
+            lock (_streamLock)
             {
-                while ((bytesRead = _stream.Read(_byteBuffer, 0, _byteBuffer.Length)) > 0)
+                LogInfo($"ReadEachChar, in lock");
+                if (initialPos >= 0)
                 {
-                    // LogInfo($"ReadEachChar, begin of chunk read, chunkCnt: {chunkCnt}, bytesRead: {bytesRead}");
-                    if (null != actionEachChunk && !actionEachChunk.Invoke(chunkCnt, bytesRead))
-                        return new ReadPerCharResult()
-                        {
-                            ChunkCnt = chunkCnt,
-                            LastChar = currentChar,
-                            Interrupted = true
-                        };
-                    
-                    for (var i = 0; i < bytesRead; i++)
+                    _stream.Position = initialPos;
+                }
+                else
+                {
+                    initialPos = _stream.Position;
+                }
+
+                var currentChar = NULL;
+                int bytesRead;
+                var chunkCnt = 0L;
+                if (encoding is null || Equals(encoding, Encoding.ASCII) || Equals(encoding, Encoding.UTF8))
+                {
+                    while ((bytesRead = _stream.Read(_byteBuffer, 0, _byteBuffer.Length)) > 0)
                     {
-                        currentChar = (char)_byteBuffer[i];
-                        // LogInfo($"ReadEachChar, read {i}'s char [{currentChar}], chunkCnt: {chunkCnt}");
-                        if (null != actionEachChar && !actionEachChar.Invoke(currentChar, initPos + chunkCnt * _byteBuffer.Length + i))
-                            return new ReadPerCharResult()
+                        // LogInfo($"ReadEachChar, begin of chunk read, chunkCnt: {chunkCnt}, bytesRead: {bytesRead}");
+                        for (var i = 0; i < bytesRead; i++)
+                        {
+                            currentChar = (char)_byteBuffer[i];
+                            // LogInfo($"ReadEachChar, read {i}'s char [{currentChar}], chunkCnt: {chunkCnt}");
+                            if (null != actionEachChar && !actionEachChar.Invoke(currentChar,
+                                    initialPos + chunkCnt * _byteBuffer.Length + i))
                             {
-                                ChunkCnt = chunkCnt,
-                                CharCnt = chunkCnt * _byteBuffer.Length + i,
-                                LastChar = currentChar,
-                                Interrupted = true
-                            };
+                                yield break;
+                            }
+                        }
+
+                        yield return new ChunkReadReport()
+                        {
+                            ChunkIdx = chunkCnt,
+                            LastCharOffset = _stream.Position,
+                            LastChar = currentChar,
+                        };
+                        chunkCnt++;
+                        // LogInfo($"ReadEachChar, chunk read end 0, chunkCnt: {chunkCnt}");
                     }
-                    chunkCnt++;
-                    // LogInfo($"ReadEachChar, chunk read end 0, chunkCnt: {chunkCnt}");
+
+                    LogInfo($"ReadEachChar, done, chunk cnt: {chunkCnt}");
+                }
+                else
+                {
+                    var charBuffer = new char[_byteBuffer.Length];
+                    while ((bytesRead = _stream.Read(_byteBuffer, 0, _byteBuffer.Length)) > 0)
+                    {
+                        // LogInfo($"ReadEachChar, begin of chunk read, chunkCnt: {chunkCnt}, bytesRead: {bytesRead}");
+                        var charCount = encoding.GetChars(_byteBuffer, 0, bytesRead, charBuffer, 0);
+                        for (var i = 0; i < charCount; i++)
+                        {
+                            currentChar = charBuffer[i];
+                            // LogInfo($"ReadEachChar, read {i}'s char [{currentChar}], chunkCnt: {chunkCnt}");
+                            if (null != actionEachChar && !actionEachChar.Invoke(currentChar,
+                                    initialPos + chunkCnt * _byteBuffer.Length + i))
+                            {
+                                yield break;
+                            }
+                        }
+
+                        yield return new ChunkReadReport()
+                        {
+                            ChunkIdx = chunkCnt,
+                            LastCharOffset = _stream.Position,
+                            LastChar = currentChar,
+                        };
+                        chunkCnt++;
+                        // LogInfo($"ReadEachChar, chunk read end 1, chunkCnt: {chunkCnt}");
+                    }
+
+                    LogInfo($"ReadEachChar, done, chunk cnt: {chunkCnt}");
                 }
             }
-            else
-            {
-                var charBuffer = new char[_byteBuffer.Length];
-                while ((bytesRead = _stream.Read(_byteBuffer, 0, _byteBuffer.Length)) > 0)
-                {
-                    // LogInfo($"ReadEachChar, begin of chunk read, chunkCnt: {chunkCnt}, bytesRead: {bytesRead}");
-                    if (null != actionEachChunk && !actionEachChunk.Invoke(chunkCnt, bytesRead))
-                        return new ReadPerCharResult()
-                        {
-                            ChunkCnt = chunkCnt,
-                            CharCnt = chunkCnt * _byteBuffer.Length,
-                            LastChar = currentChar,
-                            Interrupted = true
-                        };
-                    var charCount = encoding.GetChars(_byteBuffer, 0, bytesRead, charBuffer, 0);
-                    for (var i = 0; i < charCount; i++)
-                    {
-                        currentChar = charBuffer[i];
-                        // LogInfo($"ReadEachChar, read {i}'s char [{currentChar}], chunkCnt: {chunkCnt}");
-                        if (null != actionEachChar && !actionEachChar.Invoke(currentChar, initPos + chunkCnt * _byteBuffer.Length + i))
-                            return new ReadPerCharResult()
-                            {
-                                ChunkCnt = chunkCnt,
-                                CharCnt = chunkCnt * _byteBuffer.Length + i,
-                                LastChar = currentChar,
-                                Interrupted = true
-                            };
-                    }
-                    chunkCnt++;
-                    // LogInfo($"ReadEachChar, chunk read end 1, chunkCnt: {chunkCnt}");
-                }
-            }
-            // 读到stream结束
-            return new ReadPerCharResult()
-            {
-                ChunkCnt = chunkCnt,
-                CharCnt = _stream.Position - initPos,
-                LastChar = currentChar,
-                Interrupted = false
-            };
         }
 
         /// <summary>
         /// 逐行读取steam，不重置steam位置
         /// 每行内容存放在_sb中，每行内容仅在ActionEachLine回调中有效
         /// </summary>
-        /// <param name="onChunkStart">每个buffer开始时调用</param>
+        /// <param name="initialPos">初始偏移</param>
         /// <param name="onLineStart">每行第一个字符调用</param>
         /// <param name="onLineEnd">每行EOL调用</param>
         /// <returns></returns>
-        private ReadPerLineResult ReadEachLine(ActionEachChunk onChunkStart, ActionEachLine onLineStart, ActionEachLine onLineEnd)
+        private IEnumerator<ChunkReadReport> ReadEachLine(long initialPos, ActionEachLine onLineStart, ActionEachLine onLineEnd)
         {
             LogMethod($"ReadEachLine, encoding: {encoding}");
+
             var lineCount = 0L;
             var detectedEOL = NULL;
             _sb.Clear();
@@ -239,45 +238,60 @@ namespace ACS_Common.Utils
                 }
                 return true;
             });
-            var readPerCharResult = ReadEachChar(onChunkStart, actionEachChar);
-            if (readPerCharResult.LastChar is not (LF or CR or NULL))
+            var itr = ReadEachChar(initialPos, actionEachChar);
+            var lastChar = NULL;
+            var lastCharOffset = 0L;
+            while (itr.MoveNext())
             {
-                if (null != onLineEnd) onLineEnd(lineCount, readPerCharResult.CharCnt);
+                lastChar = itr.Current.LastChar;
+                lastCharOffset = itr.Current.LastCharOffset;
+                yield return itr.Current;
+            }
+            LogInfo($"ReadEachLine, ReadEachChar done, lastChar: [{lastChar}], lastCharOffset: {lastCharOffset}");
+            if (lastChar is not (LF or CR or NULL))
+            {
+                onLineEnd?.Invoke(lineCount, lastCharOffset);
                 lineCount++;
             }
-            return new ReadPerLineResult()
-            {
-                ChunkCnt = readPerCharResult.ChunkCnt,
-                LineCnt = lineCount,
-                LastChar =  readPerCharResult.LastChar,
-                Interrupted = readPerCharResult.Interrupted,
-            };
+            LogInfo($"ReadEachLine, done, lineCount: {lineCount}");
         }
         
         #region index
         /// <summary>
-        /// 构建行号索引
+        /// 构建行号索引，同步
         /// </summary>
         private void BuildLineIdx()
         {
             LogMethod($"BuildLineIdx");
+            var sw = new Stopwatch();
+            sw.Start();
             if (null == _stream)
             {
                 LogErr($"BuildLineIdx, null == _stream");
                 return;
             }
-            _SOLOffsetIdxTreeRoot = new SOLOffsetNode
+            var root = new SOLOffsetNode
             {
-                Line = -1L,
+                Line = 0L,
                 SOLOffset = 0L
             };
-            var node = _SOLOffsetIdxTreeRoot;
+            var node = root;
             // // 上一个chunk的最后一行记录
             var prevChunkLastLineIdx = 0L;
             var prevChunkLastLineStartOffset = 0L;
-
-            var actionEachChunk = new ActionEachChunk((long chunkIdx, long bytesRead) =>
+            var onLineStart = new ActionEachLine((long lineIdx, long offset) =>
             {
+                _totalLine++;
+                prevChunkLastLineIdx = lineIdx;
+                prevChunkLastLineStartOffset = offset;
+                return true;
+            });
+            
+            using var itr = ReadEachLine(0, onLineStart, null);
+            _totalLine = 0;
+            while (itr.MoveNext())
+            {
+                // LogInfo($"BuildLineIdx, chunk itr, itr.current: {itr.Current}");
                 if (0 != prevChunkLastLineStartOffset)
                 {
                     if (prevChunkLastLineIdx != node.Line)
@@ -292,35 +306,45 @@ namespace ACS_Common.Utils
                     }
                     // else LogInfo($"wow, such a big line.");
                 }
-                return true;
-            });
-
-            var onLineStart = new ActionEachLine((long lineIdx, long offset) =>
-            {
-                prevChunkLastLineIdx = lineIdx;
-                prevChunkLastLineStartOffset = offset;
-                return true;
-            });
-            
-            var readPerLineResult = ReadEachLine(actionEachChunk, onLineStart, null);
-            _totalLine = readPerLineResult.LineCnt;
-            // LogInfo($"BuildLineIdx, chunkCnt: {readPerLineResult.ChunkCnt}, lineCount: {readPerLineResult.LineCnt}, LastChar: {readPerLineResult.LastChar}");
-            _SOLOffsetIdxTreeRoot.Print();
+            }
+            LogInfo($"BuildLineIdx, lineCount: {_totalLine}");
+            // LogInfo($"BuildLineIdx, idxTree before transform:");
+            // root.Print();
             // 将_lineIdxRootNode转为BST
-            _SOLOffsetIdxTreeRoot = LinkNodes2BST(_SOLOffsetIdxTreeRoot);
-            _SOLOffsetIdxTreeRoot.Print();
+            root = LinkNodes2BST(root);
+            // LogInfo($"BuildLineIdx, idxTree after transform:");
+            // root.Print();
+            _SOLOffsetIdxTreeRoot = root;
+            sw.Stop();
+            LogInfo($"BuildLineIdx, done, time elapsed: {sw.Elapsed.Seconds} s {sw.Elapsed.Milliseconds} ms");
         }
 
+        /// <summary>
+        /// 构建行号索引，异步
+        /// </summary>
+        private async void BuildLineIdxAsync()
+        {
+            LogMethod($"BuildLineIdxAsync");
+            var sw = new Stopwatch();
+            sw.Start();
+            await Task.Run(() =>
+            {
+                LogMethod($"Task.Run");
+                BuildLineIdx();
+            });
+            LogInfo($"BuildLineIdxAsync, done, time elapsed: {sw.Elapsed.Seconds} s {sw.Elapsed.Milliseconds} ms");
+        }
+        
         /// <summary>
         /// 将node链表转为平衡搜索二叉树
         /// </summary>
         /// <param name="head"></param>
         private SOLOffsetNode LinkNodes2BST(SOLOffsetNode head, int depth = 0)
         {
-            LogMethod($"LinkNodes2BST, depth: {depth}, head: {head}");
+            // LogMethod($"LinkNodes2BST, depth: {depth}, head: {head}");
             if (null == head)
             {
-                LogInfo($"{Tag} LinkNodes2BST, head is null");
+                LogErr($"{Tag} LinkNodes2BST, head is null");
                 return null;
             }
 
@@ -346,7 +370,7 @@ namespace ACS_Common.Utils
         /// <returns>二分后的链表是否还能二分，0左右均不可二分；1左可二分右不可；2左右均可二分</returns>
         private int FindMiddleNode(SOLOffsetNode head, out SOLOffsetNode middlePrev, out SOLOffsetNode middle, out SOLOffsetNode end)
         {
-            LogMethod($"FindMiddleNode, head: {head}");
+            // LogMethod($"FindMiddleNode, head: {head}");
             middlePrev = null;
             middle = null;
             end = null;
@@ -430,11 +454,10 @@ namespace ACS_Common.Utils
             LogInfo($"SearchStartOfLineOffset, step 1 finish, node: {node}");
             
             // step 2 往后找到第lineIdx的位置
-            _stream.Position = node.SOLOffset;
             var pos = node.SOLOffset;
             if (node.Line != lineIdx)
             {
-                var readEachLineResult = ReadEachLine(null, new ActionEachLine((long idx, long offset) =>
+                var readEachLineResult = ReadEachLine(node.SOLOffset, new ActionEachLine((long idx, long offset) =>
                 {
                     LogInfo($"SearchStartOfLineOffset step 2 ActionEachLine, idx: {idx}, offset: {offset}");
                     pos = offset;
@@ -445,11 +468,11 @@ namespace ACS_Common.Utils
                     }
                     return idx < lineIdx;
                 }), null);
-                if (!readEachLineResult.Interrupted)
-                {
-                    LogErr($"SearchStartOfLineOffset something wrong");
-                    return -1;
-                }
+                // if (!readEachLineResult.Interrupted)
+                // {
+                //     LogErr($"SearchStartOfLineOffset something wrong");
+                //     return -1;
+                // }
             }
             LogInfo($"SearchStartOfLineOffset, step 2 finish, pos: {pos}");
             return pos;
@@ -461,13 +484,16 @@ namespace ACS_Common.Utils
 
         public IEnumerator<string> GetEnumerator()
         {
-            _stream.Position = 0;
-            var sr = new StreamReader(_stream);
-            while (true)
+            lock (_streamLock)
             {
-                var line = sr.ReadLine();
-                if (null == line) yield break;
-                yield return line;
+                _stream.Position = 0;
+                var sr = new StreamReader(_stream);
+                while (true)
+                {
+                    var line = sr.ReadLine();
+                    if (null == line) yield break;
+                    yield return line;
+                }
             }
         }
 
@@ -478,36 +504,44 @@ namespace ACS_Common.Utils
         /// <returns></returns>
         public IEnumerator<string> GetEnumerator(long startLine)
         {
-            LogMethod($"GetEnumerator, startLine: {startLine}");
-            if (null == _SOLOffsetIdxTreeRoot)
+            lock (_streamLock)
             {
-                LogErr($"SearchStartOfLineOffset, idx not built");
-                yield break;
-            }
-            if (startLine > _totalLine)
-            {
-                LogErr($"SearchStartOfLineOffset, startLine {startLine} out of range, total line: {_totalLine}");
-                yield break;
-            }
-            if (startLine < 0)
-            {
-                LogErr($"SearchStartOfLineOffset, startLine {startLine} out of range, Non-negative number required.");
-                yield break;
-            }
-            var offset = SearchStartOfLineOffset(startLine);
-            if (offset < 0)
-            {
-                LogErr($"SearchStartOfLineOffset, startLine {startLine}, indexing failed.");
-                yield break;
-            }
-            _stream.Position = offset;
-            LogInfo($"GetEnumerator, _stream.Position: {_stream.Position}");
-            var sr = new StreamReader(_stream);
-            while (true)
-            {
-                var line = sr.ReadLine();
-                if (null == line) yield break;
-                yield return line;
+                LogMethod($"GetEnumerator, startLine: {startLine}");
+                if (null == _SOLOffsetIdxTreeRoot)
+                {
+                    LogErr($"SearchStartOfLineOffset, idx not built");
+                    yield break;
+                }
+
+                if (startLine > _totalLine)
+                {
+                    LogErr($"SearchStartOfLineOffset, startLine {startLine} out of range, total line: {_totalLine}");
+                    yield break;
+                }
+
+                if (startLine < 0)
+                {
+                    LogErr(
+                        $"SearchStartOfLineOffset, startLine {startLine} out of range, Non-negative number required.");
+                    yield break;
+                }
+
+                var offset = SearchStartOfLineOffset(startLine);
+                if (offset < 0)
+                {
+                    LogErr($"SearchStartOfLineOffset, startLine {startLine}, indexing failed.");
+                    yield break;
+                }
+
+                _stream.Position = offset;
+                LogInfo($"GetEnumerator, _stream.Position: {_stream.Position}");
+                var sr = new StreamReader(_stream);
+                while (true)
+                {
+                    var line = sr.ReadLine();
+                    if (null == line) yield break;
+                    yield return line;
+                }
             }
         }
 
@@ -529,7 +563,7 @@ namespace ACS_Common.Utils
 
         protected void LogErr(string s)
         {
-            LogErr($"{Tag} {s}");
+            Debug.LogError($"{Tag} {s}");
         }
         
         protected void LogWarn(string s)

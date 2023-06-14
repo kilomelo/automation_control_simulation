@@ -56,8 +56,9 @@ namespace ACS_Common.MainBoard
             }
 
             CommandStream = GTools.GCommandFromFile(GCodeFilePath);
-            CommandStream.TestReadEachChar();
-            CommandStream.TestReadEachLine();
+            // StartCoroutine(CommandStream.TestReadEachChar());
+            StartCoroutine(CommandStream.TestReadEachLine());
+            // CommandStream.TestReadEachLine();
             // StartCoroutine(ReadLines());
         }
 

@@ -115,20 +115,8 @@ namespace ACS_Common.GCodeParser
         /// <returns></returns>
         public static GCommandStream GCommandFromFile(string filePath)
         {
-            // using var fs = new StreamReader(filePath);
             try
             {
-                // using var sr = new StreamReader(filePath);
-                // var content = sr.ReadLine();
-                // while(null != content)
-                // {
-                //     Debug.Log(content);
-                //     content = sr.ReadLine();
-                // }
-                // using var fs = new FileStream(filePath, FileMode.Open);
-                // var lineCnt = fs.CountLines();
-                // Debug.Log($"{Tag} line cnt: {lineCnt}");
-
                 var cs = new GCommandStream(filePath);
                 return cs;
             }

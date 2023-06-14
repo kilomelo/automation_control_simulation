@@ -121,13 +121,6 @@ namespace ACS_Common.GCodeParser
         /// </summary>
         private Dictionary<int, string> _comments;
 
-        // public GCommandStream(List<string> rawTextLiens, Dictionary<int, GCommand> commands, Dictionary<int, string> comments) : base()
-        // {
-        //     _rawTextLiens = rawTextLiens;
-        //     _commands = commands;
-        //     _comments = comments;
-        // }
-
         public GCommandStream(string textFilePath) : base(textFilePath)
         {
         }
