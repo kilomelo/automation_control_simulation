@@ -2,10 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
-using ACS_Common.Utils;
 using UnityEngine;
 
-namespace ACS_Common.GCodeParser
+namespace ACS_Common.GCode
 {
     /// <summary>
     /// GCode 单条命令
@@ -101,6 +100,26 @@ namespace ACS_Common.GCodeParser
             }
             return $"[GCommandType: {_commandType}, CommandNumber: {_commandNumber}, Parameters: {_sb}]";
         }
+        
+        protected void LogMethod(string methodName, string info = null)
+        {
+            Debug.Log($"# {Tag} # <{methodName}> {info} //--------------------------------------------------------------------------");
+        }
+        
+        protected void LogInfo(string methodName, string info)
+        {
+            Debug.Log($"# {Tag} # <{methodName}> {info}");
+        }
+
+        protected void LogErr(string methodName, string info)
+        {
+            Debug.LogError($"# {Tag} # <{methodName}> {info}");
+        }
+        
+        protected void LogWarn(string methodName, string info)
+        {
+            Debug.LogWarning($"# {Tag} # <{methodName}> {info}");
+        }
     }
 
     /// <summary>
@@ -108,10 +127,8 @@ namespace ACS_Common.GCodeParser
     /// </summary>
     public class GCommandStream : TextFileStream
     {
-        /// <summary>
-        /// 原始文本数据
-        /// </summary>
-        private List<string> _rawTextLiens;
+        private const string Tag = nameof(GCommandStream);
+
         /// <summary>
         /// 有效命令
         /// </summary>

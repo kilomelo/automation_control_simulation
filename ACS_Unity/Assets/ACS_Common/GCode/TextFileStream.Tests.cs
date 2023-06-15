@@ -1,6 +1,6 @@
 using System.Collections;
 
-namespace ACS_Common.Utils
+namespace ACS_Common.GCode
 {
     public partial class TextFileStream
     {

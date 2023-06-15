@@ -1,4 +1,4 @@
-namespace ACS_Common.GCodeParser
+namespace ACS_Common.GCode
 {
     /// <summary>
     /// G Code 解释器 定义

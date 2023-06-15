@@ -1,7 +1,7 @@
 using System.Collections;
 using ACS_Common.Base;
 using ACS_Common.Driver;
-using ACS_Common.GCodeParser;
+using ACS_Common.GCode;
 using UnityEngine;
 
 namespace ACS_Common.MainBoard
@@ -77,22 +77,22 @@ namespace ACS_Common.MainBoard
         
         protected void LogMethod(string methodName, string info = null)
         {
-            Debug.Log($"[{Tag}] <{methodName}> {info} //--------------------------------------------------------------------------");
+            Debug.Log($"# {Tag} # <{methodName}> {info} //--------------------------------------------------------------------------");
         }
         
         protected void LogInfo(string methodName, string info)
         {
-            Debug.Log($"[{Tag}] <{methodName}> {info}");
+            Debug.Log($"# {Tag} # <{methodName}> {info}");
         }
 
         protected void LogErr(string methodName, string info)
         {
-            Debug.LogError($"[{Tag}] <{methodName}> {info}");
+            Debug.LogError($"# {Tag} # <{methodName}> {info}");
         }
         
         protected void LogWarn(string methodName, string info)
         {
-            Debug.LogWarning($"[{Tag}] <{methodName}> {info}");
+            Debug.LogWarning($"# {Tag} # <{methodName}> {info}");
         }
     }
 }

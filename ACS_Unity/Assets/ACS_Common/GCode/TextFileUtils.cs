@@ -1,11 +1,8 @@
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
-using System.Xml;
-using System.Xml.Linq;
 
-namespace ACS_Common.Utils
+namespace ACS_Common.GCode
 {
     // code from https://github.com/NimaAra/Easy.Common by Nima Ara
     /// <summary>

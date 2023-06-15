@@ -7,7 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Debug = UnityEngine.Debug;
 
-namespace ACS_Common.Utils
+namespace ACS_Common.GCode
 {
     /// <summary>
     /// 带索引搜索树的文本流，可提高大文本随机行读取效率
@@ -565,22 +565,22 @@ namespace ACS_Common.Utils
 
         protected void LogMethod(string methodName, string info = null)
         {
-            Debug.Log($"[{Tag}] <{methodName}> {info} //--------------------------------------------------------------------------");
+            Debug.Log($"# {Tag} # <{methodName}> {info} //--------------------------------------------------------------------------");
         }
         
         protected void LogInfo(string methodName, string info)
         {
-            Debug.Log($"[{Tag}] <{methodName}> {info}");
+            Debug.Log($"# {Tag} # <{methodName}> {info}");
         }
 
         protected void LogErr(string methodName, string info)
         {
-            Debug.LogError($"[{Tag}] <{methodName}> {info}");
+            Debug.LogError($"# {Tag} # <{methodName}> {info}");
         }
         
         protected void LogWarn(string methodName, string info)
         {
-            Debug.LogWarning($"[{Tag}] <{methodName}> {info}");
+            Debug.LogWarning($"# {Tag} # <{methodName}> {info}");
         }
     }
 }
