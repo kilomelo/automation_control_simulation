@@ -121,6 +121,10 @@ namespace ACS_Common.GCodeParser
         /// </summary>
         private Dictionary<int, string> _comments;
 
+        /// <summary>
+        /// 从文本文件构造GCommandStream
+        /// </summary>
+        /// <param name="textFilePath"></param>
         public GCommandStream(string textFilePath) : base(textFilePath)
         {
         }

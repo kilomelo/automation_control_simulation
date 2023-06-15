@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Text.RegularExpressions;
 using ACS_Common.Base;
 using ACS_Common.Driver;
 using ACS_Common.GCodeParser;
@@ -27,60 +26,73 @@ namespace ACS_Common.MainBoard
         /// <param name="code"></param>
         public void SendGCode(GCommand command)
         {
-            Debug.Log($"{Tag} SendGCode, code: {command}");
+            LogMethod($"SendGCode, code: {command}");
             
         }
-
-        // public TextAsset testCodeFile;
-
-        // private void OnEnable()
-        // {
-        //     if (null == testCodeFile)
-        //     {
-        //         Debug.LogError($"{Tag} test code file is null");
-        //         return;
-        //     }
-        //     Debug.Log("textFile content:");
-        //     Debug.Log(testCodeFile.text);
-        //     var testCommands = GTools.GCommandsFromText(testCodeFile.text);
-        // }
 
         public string GCodeFilePath;
 
         private void OnEnable()
         {
+            const string m = nameof(OnEnable);
             if (string.IsNullOrEmpty(GCodeFilePath))
             {
-                Debug.LogError($"{Tag}, test gcode file path is empty");
+                LogErr(m, $"test gcode file path is empty");
                 return;
             }
 
-            CommandStream = GTools.GCommandFromFile(GCodeFilePath);
+            CommandStream = new GCommandStream(GCodeFilePath);
             // StartCoroutine(CommandStream.TestReadEachChar());
-            StartCoroutine(CommandStream.TestReadEachLine());
-            // CommandStream.TestReadEachLine();
+            // StartCoroutine(CommandStream.TestReadEachLine());
             // StartCoroutine(ReadLines());
         }
 
-        private IEnumerator ReadLines()
+        // private IEnumerator ReadLines()
+        // {
+        //     const string m = nameof(ReadLines);
+        //     LogMethod(m);
+        //     if (null == CommandStream)
+        //     {
+        //         LogErr(m, "CommandStream is null");
+        //         yield break;
+        //     }
+        //     while (!CommandStream.IndexBuilt)
+        //     {
+        //         LogInfo(m, "wait for index build");
+        //         yield return 0;
+        //     }
+        //     LogInfo(m, "index build finished");
+        //     using var itr = CommandStream.GetEnumerator(654235);
+        //     var i = 0;
+        //     while (itr.MoveNext())
+        //     {
+        //         i++;
+        //         LogInfo(m, $"{i}'s line: {itr.Current}");
+        //         if (i > 24) break;
+        //         // LogInfo(m, $"foreach line");
+        //         yield return 0;
+        //     }
+        //     LogInfo(m, $"end");
+        // }
+        
+        protected void LogMethod(string methodName, string info = null)
         {
-            Debug.Log($"{Tag}, ReadLines start");
-            
-            using var itor = CommandStream.GetEnumerator(0);
-            var i = 0;
-            while (itor.MoveNext())
-            {
-                Debug.Log($"{Tag} {i++}'s line: {itor.Current}");
-                yield return 0;
-            }
-            // var i = 0;
-            // foreach (var line in CommandStream)
-            // {
-            //     Debug.Log($"{Tag} {i}'s line: {line}");
-            //     i++;
-            //     yield return 0;
-            // }
-            Debug.Log($"{Tag}, ReadLines end");
+            Debug.Log($"[{Tag}] <{methodName}> {info} //--------------------------------------------------------------------------");
+        }
+        
+        protected void LogInfo(string methodName, string info)
+        {
+            Debug.Log($"[{Tag}] <{methodName}> {info}");
+        }
+
+        protected void LogErr(string methodName, string info)
+        {
+            Debug.LogError($"[{Tag}] <{methodName}> {info}");
+        }
+        
+        protected void LogWarn(string methodName, string info)
+        {
+            Debug.LogWarning($"[{Tag}] <{methodName}> {info}");
         }
     }
 }
