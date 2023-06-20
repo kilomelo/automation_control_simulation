@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using ACS_Common.Base;
 using ACS_Common.Driver;
@@ -9,7 +10,7 @@ namespace ACS_Common.MainBoard
     /// <summary>
     /// 3d打印主板
     /// </summary>
-    public class PrinterMainBoard : ACS_Behaviour
+    public class PrinterMainBoard : ACS_Behaviour, IGCommandStreamHolder
     {
         private const string Tag = nameof(PrinterMainBoard);
 
@@ -18,7 +19,8 @@ namespace ACS_Common.MainBoard
         [SerializeField] private StepMotorDriverBehaviour _stepMotorDriverZ;
         [SerializeField] private StepMotorDriverBehaviour _stepMotorDriverE;
 
-        public GCommandStream CommandStream;
+        private GCommandStream _commandStream;
+        public GCommandStream Stream => _commandStream;
 
         /// <summary>
         /// 发送GCode
@@ -41,12 +43,16 @@ namespace ACS_Common.MainBoard
                 return;
             }
 
-            CommandStream = new GCommandStream(GCodeFilePath);
+            _commandStream = new GCommandStream(GCodeFilePath);
             // StartCoroutine(CommandStream.TestReadEachChar());
             // StartCoroutine(CommandStream.TestReadEachLine());
             // StartCoroutine(ReadLines());
         }
 
+        private void OnDestroy()
+        {
+            _commandStream?.Dispose();
+        }
         // private IEnumerator ReadLines()
         // {
         //     const string m = nameof(ReadLines);

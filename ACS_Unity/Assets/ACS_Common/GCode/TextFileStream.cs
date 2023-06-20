@@ -29,6 +29,11 @@ namespace ACS_Common.GCode
         /// 索引是否已建立
         /// </summary>
         public bool IndexBuilt => null != _SOLOffsetIdxTreeRoot;
+
+        /// <summary>
+        /// 总行数，这个值在建立索引后有效
+        /// </summary>
+        public long TotalLines => _totalLines;
         
         /// <summary>
         /// Start of Line offset
@@ -66,7 +71,7 @@ namespace ACS_Common.GCode
         private byte[] _byteBuffer;
         private StringBuilder _sb;
         // 总行数，这个值在建立索引后有效
-        private long _totalLine;
+        private long _totalLines;
 
         private object _streamLock = new object();
         public TextFileStream(string textFilePath)
@@ -93,6 +98,8 @@ namespace ACS_Common.GCode
         
         public void Dispose()
         {
+            const string m = nameof(Dispose);;
+            LogMethod(m, $"Dispose");
             lock (_streamLock)
             {
                 _stream?.Dispose();
@@ -135,7 +142,7 @@ namespace ACS_Common.GCode
             LogMethod(m, $"initialPos: {initialPos}, actionEachChar: {actionEachChar}, encoding: {encoding}");
             lock (_streamLock)
             {
-                LogInfo(m, $"in lock");
+                // LogInfo(m, $"in lock");
                 if (initialPos >= 0)
                 {
                     _stream.Position = initialPos;
@@ -266,7 +273,7 @@ namespace ACS_Common.GCode
                 onLineEnd?.Invoke(lineCount, lastCharOffset);
                 lineCount++;
             }
-            LogInfo(m, $"done, lastChar: [{lastChar}], lastCharOffset: {lastCharOffset}, lineCount: {lineCount}");
+            // LogInfo(m, $"done, lastChar: [{lastChar}], lastCharOffset: {lastCharOffset}, lineCount: {lineCount}");
         }
         
         #region index
@@ -295,14 +302,14 @@ namespace ACS_Common.GCode
             var prevChunkLastLineStartOffset = 0L;
             var onLineStart = new ActionEachLine((long lineIdx, long offset) =>
             {
-                _totalLine++;
+                _totalLines++;
                 prevChunkLastLineIdx = lineIdx;
                 prevChunkLastLineStartOffset = offset;
                 return true;
             });
             
             using var itr = ReadEachLine(0, onLineStart, null);
-            _totalLine = 0;
+            _totalLines = 0;
             while (itr.MoveNext())
             {
                 // LogInfo(m, $"chunk itr, itr.current: {itr.Current}");
@@ -321,7 +328,7 @@ namespace ACS_Common.GCode
                     // else LogInfo(m, $"wow, such a big line.");
                 }
             }
-            LogInfo(m, $"lineCount: {_totalLine}");
+            LogInfo(m, $"lineCount: {_totalLines}");
             // LogInfo(m, $"idxTree before transform:");
             // root.Print();
             // 将_lineIdxRootNode转为BST
@@ -428,9 +435,9 @@ namespace ACS_Common.GCode
                 LogErr(m, $"idx not built");
                 return -1;
             }
-            if (lineIdx > _totalLine)
+            if (lineIdx > _totalLines)
             {
-                LogErr(m, $"lineIdx {lineIdx} out of range, total line: {_totalLine}");
+                LogErr(m, $"lineIdx {lineIdx} out of range, total line: {_totalLines}");
                 return -1;
             }
             if (lineIdx < 0)
@@ -465,7 +472,7 @@ namespace ACS_Common.GCode
                 // equal
                 else break;
             }
-            LogInfo(m, $"step 1 finish, node: {node}");
+            // LogInfo(m, $"step 1 finish, node: {node}");
             
             // step 2 往后找到第lineIdx的位置
             var pos = node.SOLOffset;
@@ -477,7 +484,7 @@ namespace ACS_Common.GCode
                     pos = offset;
                     if (idx + node.Line == lineIdx)
                     {
-                        LogInfo(m, $"ActionEachLine, find target, lineIdx: {idx}, offset: {offset}");
+                        // LogInfo(m, $"ActionEachLine, find target, lineIdx: {idx}, offset: {offset}");
                     }
                     return idx + node.Line < lineIdx;
                 }), null);
@@ -486,7 +493,7 @@ namespace ACS_Common.GCode
                     // search exact line pos
                 }
             }
-            LogInfo(m, $"step 2 finish, pos: {pos}");
+            // LogInfo(m, $"step 2 finish, pos: {pos}");
             return pos;
         }
         
@@ -526,9 +533,9 @@ namespace ACS_Common.GCode
                     yield break;
                 }
 
-                if (startLine > _totalLine)
+                if (startLine > _totalLines)
                 {
-                    LogErr(m, $"startLine {startLine} out of range, total line: {_totalLine}");
+                    LogErr(m, $"startLine {startLine} out of range, total line: {_totalLines}");
                     yield break;
                 }
 
@@ -565,12 +572,12 @@ namespace ACS_Common.GCode
 
         protected void LogMethod(string methodName, string info = null)
         {
-            Debug.Log($"# {Tag} # <{methodName}> {info} //--------------------------------------------------------------------------");
+            // Debug.Log($"# {Tag} # <{methodName}> {info} //--------------------------------------------------------------------------");
         }
         
         protected void LogInfo(string methodName, string info)
         {
-            Debug.Log($"# {Tag} # <{methodName}> {info}");
+            // Debug.Log($"# {Tag} # <{methodName}> {info}");
         }
 
         protected void LogErr(string methodName, string info)
