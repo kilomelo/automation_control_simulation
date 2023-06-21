@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
+using ACS_Common.Base;
 using Debug = UnityEngine.Debug;
 
 namespace ACS_Common.GCode
@@ -12,10 +13,8 @@ namespace ACS_Common.GCode
     /// <summary>
     /// 带索引搜索树的文本流，可提高大文本随机行读取效率
     /// </summary>
-    public partial class TextFileStream : IDisposable, IEnumerable<string>
+    public partial class TextFileStream : ACS_Object<TextFileStream>, IDisposable, IEnumerable<string>
     {
-        private const string Tag = nameof(TextFileStream);
-
         private const char CR = '\r';
         private const char LF = '\n';
         private const char NULL = (char)0;
@@ -34,6 +33,20 @@ namespace ACS_Common.GCode
         /// 总行数，这个值在建立索引后有效
         /// </summary>
         public long TotalLines => _totalLines;
+
+        /// <summary>
+        /// 目前位置
+        /// </summary>
+        public long Position
+        {
+            get
+            {
+                lock (_streamLock)
+                {
+                    return _stream?.Position ?? 0;
+                }
+            }
+        }
         
         /// <summary>
         /// Start of Line offset
@@ -76,8 +89,8 @@ namespace ACS_Common.GCode
         private object _streamLock = new object();
         public TextFileStream(string textFilePath)
         {
-            const string m = Tag;
-            LogMethod(m, $"constructor, textFilePath: {textFilePath}");
+            // const string m = Tag;
+            LogMethod("constructor", $"textFilePath: {textFilePath}");
 
             FileStream fs = null;
             try
@@ -86,14 +99,14 @@ namespace ACS_Common.GCode
             }
             catch(IOException e)
             {
-                LogErr(m, $"read file failed with message: \n{e}");
+                // LogErr(m, $"read file failed with message: \n{e}");
                 return;
             }
             _stream = fs;
             _byteBuffer = new byte[_byteBufferSize];
             _sb = new StringBuilder();
             BuildLineIdxAsync();
-            LogInfo(m, "end of constructor");
+            // LogInfo(m, "end of constructor");
         }
         
         public void Dispose()
@@ -519,7 +532,7 @@ namespace ACS_Common.GCode
         /// <summary>
         /// 从特定行开始获得迭代器
         /// </summary>
-        /// <param name="lineIdxOffset"></param>
+        /// <param name="startLine"></param>
         /// <returns></returns>
         public IEnumerator<string> GetEnumerator(long startLine)
         {
@@ -569,25 +582,5 @@ namespace ACS_Common.GCode
             return GetEnumerator();
         }
         #endregion // IEnumerator
-
-        protected void LogMethod(string methodName, string info = null)
-        {
-            // Debug.Log($"# {Tag} # <{methodName}> {info} //--------------------------------------------------------------------------");
-        }
-        
-        protected void LogInfo(string methodName, string info)
-        {
-            // Debug.Log($"# {Tag} # <{methodName}> {info}");
-        }
-
-        protected void LogErr(string methodName, string info)
-        {
-            Debug.LogError($"# {Tag} # <{methodName}> {info}");
-        }
-        
-        protected void LogWarn(string methodName, string info)
-        {
-            Debug.LogWarning($"# {Tag} # <{methodName}> {info}");
-        }
     }
 }

@@ -1,11 +1,11 @@
+using ACS_Common.Base;
 using UnityEngine;
 
 namespace JSQZ_Common.Optics.Lazer
 {
     [RequireComponent(typeof(LineRenderer))]
-    public class LazerTransmitter : MonoBehaviour
+    public class LazerTransmitter : ACS_Behaviour
     {
-        private static string TAG = typeof(LazerTransmitter).Name;
         /// <summary>
         /// 射线长度限制
         /// </summary>
@@ -47,7 +47,7 @@ namespace JSQZ_Common.Optics.Lazer
 
         private void Awake()
         {
-            Debug.Log($"{TAG} Awake, gameObject: {gameObject}, length: {RayLengthLimit} mm, reflectionLayers: {_reflectLayers}, absorbLayers: {_absorbLayers}, reflectionLimit: {ReflectionCntLimit}");
+            Debug.Log($"{Tag} Awake, gameObject: {gameObject}, length: {RayLengthLimit} mm, reflectionLayers: {_reflectLayers}, absorbLayers: {_absorbLayers}, reflectionLimit: {ReflectionCntLimit}");
             _points = new Vector3[ReflectionCntLimit + 2];
             Debug.Log($"LazerTransmitter, _points[0]: {_points[0]}");
             _lr = GetComponent<LineRenderer>();

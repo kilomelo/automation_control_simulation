@@ -12,8 +12,6 @@ namespace ACS_Common.MainBoard
     /// </summary>
     public class PrinterMainBoard : ACS_Behaviour, IGCommandStreamHolder
     {
-        private const string Tag = nameof(PrinterMainBoard);
-
         [SerializeField] private StepMotorDriverBehaviour _stepMotorDriverX;
         [SerializeField] private StepMotorDriverBehaviour _stepMotorDriverY;
         [SerializeField] private StepMotorDriverBehaviour _stepMotorDriverZ;
@@ -80,25 +78,5 @@ namespace ACS_Common.MainBoard
         //     }
         //     LogInfo(m, $"end");
         // }
-        
-        protected void LogMethod(string methodName, string info = null)
-        {
-            Debug.Log($"# {Tag} # <{methodName}> {info} //--------------------------------------------------------------------------");
-        }
-        
-        protected void LogInfo(string methodName, string info)
-        {
-            Debug.Log($"# {Tag} # <{methodName}> {info}");
-        }
-
-        protected void LogErr(string methodName, string info)
-        {
-            Debug.LogError($"# {Tag} # <{methodName}> {info}");
-        }
-        
-        protected void LogWarn(string methodName, string info)
-        {
-            Debug.LogWarning($"# {Tag} # <{methodName}> {info}");
-        }
     }
 }

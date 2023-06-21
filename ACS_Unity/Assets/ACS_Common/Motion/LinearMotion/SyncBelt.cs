@@ -8,8 +8,6 @@ namespace ACS_Common.Motion.LinearMotion
     /// </summary>
     public class SyncBelt : MotionBehaviour, ILinearMotionMechanism
     {
-        private const string Tag = nameof(SyncBelt);
-
         /// <summary>
         /// 齿距，单位微米
         /// </summary>

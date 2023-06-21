@@ -10,8 +10,6 @@ namespace ACS_Common.Driver
     /// </summary>
     public class StepMotorDriver : StepMotorDriverBehaviour
     {
-        private const string Tag = nameof(StepMotorDriver);
-
         [SerializeField] private ACS_Behaviour _stepMotorBehaviour;
         [SerializeField] private IStepMotor _stepMotor;
 

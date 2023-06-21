@@ -1,13 +1,13 @@
 using System;
+using ACS_Common.Base;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
 namespace ACS_Common.GCode.View
 {
     [RequireComponent(typeof(RectTransform))]
-    public class GCodeViewScrollBar : MonoBehaviour, IPointerDownHandler, IDragHandler, IBeginDragHandler
+    public class GCodeViewScrollBar : ACS_Behaviour, IPointerDownHandler, IDragHandler, IBeginDragHandler
     {
-        private const string Tag = nameof(GCodeViewScrollBar);
         [SerializeField] private RectTransform _handler;
         public bool SnapHandler = false;
         public float MinHandlerHeight = 1f;
@@ -131,26 +131,6 @@ namespace ACS_Common.GCode.View
             LogMethod(m, $"localPosY: {localPosY}");
             var rect = _rectTransform.rect;
             return Math.Clamp(-localPosY / (rect.height - _handlerHeight), 0f, 1f);
-        }
-        
-        protected void LogMethod(string methodName, string info = null)
-        {
-            // Debug.Log($"# {Tag} # <{methodName}> {info} //--------------------------------------------------------------------------");
-        }
-        
-        protected void LogInfo(string methodName, string info)
-        {
-            // Debug.Log($"# {Tag} # <{methodName}> {info}");
-        }
-
-        protected void LogErr(string methodName, string info)
-        {
-            Debug.LogError($"# {Tag} # <{methodName}> {info}");
-        }
-        
-        protected void LogWarn(string methodName, string info)
-        {
-            Debug.LogWarning($"# {Tag} # <{methodName}> {info}");
         }
     }
 }

@@ -8,7 +8,6 @@ namespace ACS_Common.Motion.RotaryMotor.StepMotor
     /// </summary>
     public class StepMotor : MotionBehaviour, IRotaryMotionMechanism, IStepMotor
     {
-        private const string Tag = nameof(StepMotor);
         /// <summary>
         /// 步距角，单位角秒
         /// </summary>

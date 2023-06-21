@@ -1,6 +1,8 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Text;
+using ACS_Common.Base;
 using TMPro;
 using UnityEngine;
 
@@ -9,10 +11,8 @@ namespace ACS_Common.GCode.View
     /// <summary>
     /// unity的gcode vide实现
     /// </summary>
-    public class GCodeView : MonoBehaviour
+    public partial class GCodeView : ACS_Behaviour
     {
-        private const string Tag = nameof(GCodeView);
-
         [SerializeField] private TextMeshProUGUI _textField;
         [SerializeField] private GCodeViewScrollBar _scrollBar;
         [SerializeField]
@@ -33,12 +33,11 @@ namespace ACS_Common.GCode.View
         public MonoBehaviour GCommandStreamHolderComp;
         private IGCommandStreamHolder _streamHolder;
         private GCommandStream _stream => _streamHolder?.Stream;
+        // 上一次updateText时读取的最后位置
+        private long _lastReadTextPosition;
         private long DisplayLineIdx
         {
-            set
-            {
-                UpdateTextField(value);
-            }
+            set => UpdateTextField(value);
         }
 
         private void UpdateTextField(long startLineIdx)
@@ -66,30 +65,53 @@ namespace ACS_Common.GCode.View
             // 计算行号最大位数
             var lastLineIdx = startLineIdx + _displayLineCnt;
             var maxLineIdxLen = 1;
-            // LogInfo(m, $"let's find line idx len, startLineIdx: {startLineIdx}, _displayLineCnt: {_displayLineCnt}, lastLineIdx: {lastLineIdx}");
+            LogInfo(m, $"let's find line idx len, startLineIdx: {startLineIdx}, _displayLineCnt: {_displayLineCnt}, lastLineIdx: {lastLineIdx}");
             while (lastLineIdx > 9)
             {
                 lastLineIdx = ((lastLineIdx * 1374389535) >> 37) - (lastLineIdx >> 31);
-                // LogInfo(m, $"loop, maxLineIdxLen: {maxLineIdxLen} lastLineIdx: {lastLineIdx}");
+                LogInfo(m, $"loop, maxLineIdxLen: {maxLineIdxLen} lastLineIdx: {lastLineIdx}");
                 maxLineIdxLen += 2;
             }
             if (lastLineIdx == 0) maxLineIdxLen--;
-            // LogInfo(m, $"calc line idx len finish, maxLineIdxLen: {maxLineIdxLen}, lastLineIdx: {lastLineIdx}");
+            LogInfo(m, $"calc line idx len finish, maxLineIdxLen: {maxLineIdxLen}, lastLineIdx: {lastLineIdx}");
+            
             _sb.Clear();
-            using var itr = _stream.GetEnumerator(startLineIdx);
             var i = 0;
             var realDisplayLineCnt = Mathf.Clamp(_displayLineCnt, 1, 100);
-            while (itr.MoveNext() && i++ < realDisplayLineCnt)
+            while (i < realDisplayLineCnt)
             {
-                // LogInfo(m, $"_sb.Append({itr.Current})");
-                _sb.Append($"<color=#{{3D8AFF}}>{(i + startLineIdx).ToString().PadRight(maxLineIdxLen)}</color> {itr.Current}\n");
+                if (!_textLineCache.TryGetValue(i + startLineIdx, out var cachedText)) break;
+                // LogInfo(m, $"_sb.Append({cachedText})");
+                // LogInfo(m, $"line idx str: len: {(i + startLineIdx).ToString().PadRight(maxLineIdxLen).Length}, content: [{(i + startLineIdx).ToString().PadRight(maxLineIdxLen)}]");
+                _sb.Append(
+                    $"<i><color=#{{3D8AFF}}>{(i + startLineIdx).ToString().PadRight(maxLineIdxLen)}</color></i>  {cachedText}\n");
+                i++;
             }
-            while (i++ <= realDisplayLineCnt)
+            LogInfo(m, $"read {i} lines from cache");
+
+            if (i < realDisplayLineCnt)
             {
-                // LogInfo(m, $"_sb.Append(\\n)");
-                _sb.Append("\r\n");
+                using var itr = _stream.GetEnumerator(i + startLineIdx);
+                while (itr.MoveNext() && i++ < realDisplayLineCnt)
+                {
+                    // LogInfo(m, $"_sb.Append({itr.Current})");
+                    // LogInfo(m, $"line idx str: len: {(i + startLineIdx).ToString().PadRight(maxLineIdxLen).Length}, content: [{(i + startLineIdx).ToString().PadRight(maxLineIdxLen)}]");
+                    _sb.Append($"<i><color=#{{3D8AFF}}>{(i + startLineIdx).ToString().PadRight(maxLineIdxLen)}</color></i>  {itr.Current}\n");
+                    // cache text
+                    CacheText(i + startLineIdx, itr.Current);
+                }
+                _lastReadTextPosition = _stream.Position;
+                LogInfo(m, $"read stream finish at {_lastReadTextPosition}");
             }
-            // LogInfo(m, $"display text:\n{_sb}");
+            LogInfo(m, $"read {i} lines from stream, cache count: {_textLineCache.Count}");
+            PreserveCacheCapacity();
+            // // 补充空行
+            // while (i++ <= realDisplayLineCnt)
+            // {
+            //     // LogInfo(m, $"_sb.Append(\\n)");
+            //     _sb.Append("\r\n");
+            // }
+            LogInfo(m, $"display text:\n{_sb}");
             _textField.text = _sb.ToString();
         }
 
@@ -181,27 +203,6 @@ namespace ACS_Common.GCode.View
                 _scrollBar.SetConfig(_stream.TotalLines, _displayLineCnt);
             }
             DisplayLineIdx = 0;
-        }
-
-
-        protected void LogMethod(string methodName, string info = null)
-        {
-            Debug.Log($"# {Tag} # <{methodName}> {info} //--------------------------------------------------------------------------");
-        }
-        
-        protected void LogInfo(string methodName, string info)
-        {
-            Debug.Log($"# {Tag} # <{methodName}> {info}");
-        }
-
-        protected void LogErr(string methodName, string info)
-        {
-            Debug.LogError($"# {Tag} # <{methodName}> {info}");
-        }
-        
-        protected void LogWarn(string methodName, string info)
-        {
-            Debug.LogWarning($"# {Tag} # <{methodName}> {info}");
         }
     }
 }
