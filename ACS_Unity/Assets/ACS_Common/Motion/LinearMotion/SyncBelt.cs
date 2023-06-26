@@ -1,4 +1,5 @@
 using System;
+using ACS_Common.Base;
 using UnityEngine;
 
 namespace ACS_Common.Motion.LinearMotion
@@ -6,7 +7,7 @@ namespace ACS_Common.Motion.LinearMotion
     /// <summary>
     /// 同步带总成，包括驱动齿轮、移动平台
     /// </summary>
-    public class SyncBelt : MotionBehaviour, ILinearMotionMechanism
+    public class SyncBelt : ACS_Behaviour, ILinearMotionMechanism
     {
         /// <summary>
         /// 齿距，单位微米
@@ -48,28 +49,28 @@ namespace ACS_Common.Motion.LinearMotion
         public Action<int> OnLimit { get; set; }
         protected override void Init()
         {
-            Debug.Log($"{Tag} Init");
+            LogInfo("todo method name", $"Init");
             if (null != _driveWheelSource) _driveWheelSource.AsRotaryMotion.OnMotion += OnDriveWheelSourceMotion;
             _curPos = _initialPos;
         }
 
         private void OnDestroy()
         {
-            Debug.Log($"{Tag} OnDestroy");
+            LogInfo("todo method name", $"OnDestroy");
             if (null != _driveWheelSource) _driveWheelSource.AsRotaryMotion.OnMotion -= OnDriveWheelSourceMotion;
         }
 
         public void SetDriveWheelSource(MotionBehaviour motionBehaviour)
         {
-            Debug.Log($"{Tag} SetDriveWheelSource, motionBehaviour: {motionBehaviour}");
+            LogInfo("todo method name", $"SetDriveWheelSource, motionBehaviour: {motionBehaviour}");
             if (null == motionBehaviour)
             {
-                Debug.LogError($"{Tag} SetDriveWheelSource failed, monoMotion is null");
+                LogErr("todo method name", $"SetDriveWheelSource failed, monoMotion is null");
                 return;
             }
             if (!motionBehaviour.IsRotaryMotion)
             {
-                Debug.LogError($"{Tag} SetDriveWheelSource failed, monoMotion is not a RotaryMotion");
+                LogErr("todo method name", $"SetDriveWheelSource failed, monoMotion is not a RotaryMotion");
                 return;
             }
             _driveWheelSource = motionBehaviour;
@@ -78,7 +79,7 @@ namespace ACS_Common.Motion.LinearMotion
 
         public void UnsetDriveWheelSource()
         {
-            Debug.Log($"{Tag} UnsetDriveWheelSource， _driveWheelSource： {_driveWheelSource}");
+            LogInfo("todo method name", $"UnsetDriveWheelSource， _driveWheelSource： {_driveWheelSource}");
             if (null == _driveWheelSource) return;
             _driveWheelSource.AsRotaryMotion.OnMotion -= OnDriveWheelSourceMotion;
             _driveWheelSource = null;
@@ -87,7 +88,7 @@ namespace ACS_Common.Motion.LinearMotion
         private void OnDriveWheelSourceMotion(int deltaArcSec)
         {
             var deltaTangentDistance = _toothCnt * _toothPitchUm * deltaArcSec / (360 * 60 * 60);
-            Debug.Log($"{Tag} OnDriveWheelSourceMotion, deltaArcSec: {deltaArcSec}, deltaTangentDistance: {deltaTangentDistance}");
+            LogInfo("todo method name", $"OnDriveWheelSourceMotion, deltaArcSec: {deltaArcSec}, deltaTangentDistance: {deltaTangentDistance}");
             if (_curPos + deltaTangentDistance < 0)
             {
                 deltaTangentDistance = -_curPos;
@@ -104,7 +105,7 @@ namespace ACS_Common.Motion.LinearMotion
             {
                 OnMotion?.Invoke(deltaTangentDistance);
             }
-            Debug.Log($"{Tag} OnDriveWheelSourceMotion, final deltaTangentDistance: {deltaTangentDistance}");
+            LogInfo("todo method name", $"OnDriveWheelSourceMotion, final deltaTangentDistance: {deltaTangentDistance}");
         }
     }
 }

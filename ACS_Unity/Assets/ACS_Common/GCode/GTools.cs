@@ -1,4 +1,6 @@
 
+using ACS_Common.Base;
+
 namespace ACS_Common.GCode
 {
     public static class GTools

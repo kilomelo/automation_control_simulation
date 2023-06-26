@@ -47,13 +47,13 @@ namespace JSQZ_Common.Optics.Lazer
 
         private void Awake()
         {
-            Debug.Log($"{Tag} Awake, gameObject: {gameObject}, length: {RayLengthLimit} mm, reflectionLayers: {_reflectLayers}, absorbLayers: {_absorbLayers}, reflectionLimit: {ReflectionCntLimit}");
+            LogInfo("todo method name", $"Awake, gameObject: {gameObject}, length: {RayLengthLimit} mm, reflectionLayers: {_reflectLayers}, absorbLayers: {_absorbLayers}, reflectionLimit: {ReflectionCntLimit}");
             _points = new Vector3[ReflectionCntLimit + 2];
-            Debug.Log($"LazerTransmitter, _points[0]: {_points[0]}");
+            LogInfo("todo method name", $"LazerTransmitter, _points[0]: {_points[0]}");
             _lr = GetComponent<LineRenderer>();
             if (null == _lr)
             {
-                Debug.LogError("LazerTransmitter LineRenderer missing");
+                LogErr("todo method name", $"LazerTransmitter LineRenderer missing");
             }
         }
         private void Update()
@@ -66,7 +66,7 @@ namespace JSQZ_Common.Optics.Lazer
         /// </summary>
         private void Raycast()
         {
-            // Debug.Log("LazerTransmitter Raycast begin");
+            LogMethod("todo method name", $" Raycast begin");
             var rayLength = RayLengthLimit;
             var lastHitPos = transform.position;
             var lastDir = transform.forward;
@@ -75,7 +75,7 @@ namespace JSQZ_Common.Optics.Lazer
             while (reflectionCnt <= ReflectionCntLimit)
             {
                 reflectionCnt++;
-                Debug.Log($"LazerTransmitter Raycast loop begin, reflectionCnt: {reflectionCnt}, lastHitPos: {lastHitPos}, lastDir: {lastDir}");
+                LogInfo("todo method name", $"LazerTransmitter Raycast loop begin, reflectionCnt: {reflectionCnt}, lastHitPos: {lastHitPos}, lastDir: {lastDir}");
                 if (Physics.Raycast(lastHitPos, lastDir, out var hit, rayLength, _reflectLayers | _absorbLayers))
                 {
                     if (((1 << hit.collider.gameObject.layer) & _absorbLayers) != 0)
@@ -84,7 +84,7 @@ namespace JSQZ_Common.Optics.Lazer
                         _absorbPoint = hit.point;
                         _absorbNormal = hit.normal;
                         _points[reflectionCnt] = _absorbPoint;
-                        Debug.Log($"LazerTransmitter Raycast absorb, reflectionCnt: {reflectionCnt}, _points[reflectionCnt]: {_points[reflectionCnt]}");
+                        LogInfo("todo method name", $"LazerTransmitter Raycast absorb, reflectionCnt: {reflectionCnt}, _points[reflectionCnt]: {_points[reflectionCnt]}");
                         break;
                     }
                     else if (((1 << hit.collider.gameObject.layer) & _reflectLayers) != 0)
@@ -93,7 +93,7 @@ namespace JSQZ_Common.Optics.Lazer
                         lastHitPos = hit.point;
                         lastDir = Vector3.Reflect(lastDir, hit.normal);
                         _points[reflectionCnt] = lastHitPos;
-                        Debug.Log($"LazerTransmitter Raycast reflect, reflectionCnt: {reflectionCnt}, _points[reflectionCnt]: {_points[reflectionCnt]}");
+                        LogInfo("todo method name", $"LazerTransmitter Raycast reflect, reflectionCnt: {reflectionCnt}, _points[reflectionCnt]: {_points[reflectionCnt]}");
                         rayLength -= hit.distance;
                     }
                 }
@@ -101,7 +101,7 @@ namespace JSQZ_Common.Optics.Lazer
                 {
                     _points[reflectionCnt] = lastHitPos + lastDir * rayLength;
                     rayLength = 0f;
-                    Debug.Log($"LazerTransmitter Raycast not hit, reflectionCnt: {reflectionCnt}, _points[reflectionCnt]: {_points[reflectionCnt]}");
+                    LogInfo("todo method name", $"LazerTransmitter Raycast not hit, reflectionCnt: {reflectionCnt}, _points[reflectionCnt]: {_points[reflectionCnt]}");
                     break;
                 }
             }
@@ -118,7 +118,7 @@ namespace JSQZ_Common.Optics.Lazer
                     _absorbReticle.transform.forward = -_absorbNormal;
                 }
             }
-            // Debug.Log("LazerTransmitter Raycast end");
+            // LogInfo("todo method name", $"Raycast end");
         }
     }
 }

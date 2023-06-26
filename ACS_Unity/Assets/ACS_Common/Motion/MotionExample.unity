@@ -874,7 +874,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _toothPitchUm: 2000
   _toothCnt: 20
-  _driveWheelSource: {fileID: 1373423957}
+  _driveWheelSource: {fileID: 0}
   _effectiveLength: 200000
   _initialPos: 0
 --- !u!4 &942503039

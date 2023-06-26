@@ -1,5 +1,3 @@
-using System;
-using System.Collections;
 using ACS_Common.Base;
 using ACS_Common.Driver;
 using ACS_Common.GCode;
@@ -42,41 +40,11 @@ namespace ACS_Common.MainBoard
             }
 
             _commandStream = new GCommandStream(GCodeFilePath);
-            // StartCoroutine(CommandStream.TestReadEachChar());
-            // StartCoroutine(CommandStream.TestReadEachLine());
-            // StartCoroutine(ReadLines());
         }
 
         private void OnDestroy()
         {
             _commandStream?.Dispose();
         }
-        // private IEnumerator ReadLines()
-        // {
-        //     const string m = nameof(ReadLines);
-        //     LogMethod(m);
-        //     if (null == CommandStream)
-        //     {
-        //         LogErr(m, "CommandStream is null");
-        //         yield break;
-        //     }
-        //     while (!CommandStream.IndexBuilt)
-        //     {
-        //         LogInfo(m, "wait for index build");
-        //         yield return 0;
-        //     }
-        //     LogInfo(m, "index build finished");
-        //     using var itr = CommandStream.GetEnumerator(654235);
-        //     var i = 0;
-        //     while (itr.MoveNext())
-        //     {
-        //         i++;
-        //         LogInfo(m, $"{i}'s line: {itr.Current}");
-        //         if (i > 24) break;
-        //         // LogInfo(m, $"foreach line");
-        //         yield return 0;
-        //     }
-        //     LogInfo(m, $"end");
-        // }
     }
 }

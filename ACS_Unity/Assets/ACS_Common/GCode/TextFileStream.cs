@@ -13,7 +13,7 @@ namespace ACS_Common.GCode
     /// <summary>
     /// 带索引搜索树的文本流，可提高大文本随机行读取效率
     /// </summary>
-    public partial class TextFileStream : ACS_Object<TextFileStream>, IDisposable, IEnumerable<string>
+    public partial class TextFileStream : ACS_Object, IDisposable, IEnumerable<string>
     {
         private const char CR = '\r';
         private const char LF = '\n';
@@ -52,7 +52,7 @@ namespace ACS_Common.GCode
         /// Start of Line offset
         /// 行首偏移索引节点
         /// </summary>
-        private class SOLOffsetNode
+        private class SOLOffsetNode : ACS_Object
         {
             public long Line;
             public long SOLOffset;
@@ -72,7 +72,7 @@ namespace ACS_Common.GCode
                 sb.Append($"LineIdx: {Line}, Offset: {SOLOffset}");
                 if (null == Left) sb.Append(", left is none");
                 if (null == Right) sb.Append(", right is none");
-                Debug.Log(sb.ToString());
+                LogInfo("Print", sb.ToString());
                 Left?.Print(depth + 1);
                 Right?.Print(depth + 1);
             }

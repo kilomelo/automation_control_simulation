@@ -14,7 +14,7 @@ namespace ACS_Common.Base
 
         protected virtual void Init() {}
 
-        protected virtual string Tag => GetType().Name;
+        protected string Tag => GetType().Name;
         protected void LogMethod(string methodName, string info = null)
         {
             Debug.Log($"# {Tag} # <{methodName}> {info} //--------------------------------------------------------------------------");
@@ -33,6 +33,19 @@ namespace ACS_Common.Base
         protected void LogWarn(string methodName, string info)
         {
             Debug.LogWarning($"# {Tag} # <{methodName}> {info}");
+        }
+        protected static void LogInfoStatic(string tag, string methodName, string info = null)
+        {
+            Debug.Log($"# {tag} # <{methodName}> {info} //========================================================================");
+        }
+        protected static void LogErrStatic(string tag, string methodName, string info)
+        {
+            Debug.LogError($"# {tag} # <{methodName}> {info} //========================================================================");
+        }
+        
+        protected void LogWarnStatic(string tag, string methodName, string info)
+        {
+            Debug.LogWarning($"# {tag} # <{methodName}> {info} //========================================================================");
         }
     }
 }

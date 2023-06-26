@@ -1,4 +1,5 @@
 using System;
+using ACS_Common.Base;
 using UnityEngine;
 
 namespace ACS_Common.Motion.RotaryMotor.StepMotor
@@ -6,7 +7,7 @@ namespace ACS_Common.Motion.RotaryMotor.StepMotor
     /// <summary>
     /// 步进电机
     /// </summary>
-    public class StepMotor : MotionBehaviour, IRotaryMotionMechanism, IStepMotor
+    public class StepMotor : ACS_Behaviour, IRotaryMotionMechanism, IStepMotor
     {
         /// <summary>
         /// 步距角，单位角秒
@@ -32,7 +33,7 @@ namespace ACS_Common.Motion.RotaryMotor.StepMotor
         /// <param name="subDiv">细分数</param>
         public void Drive(int cnt, bool reverse, int subDiv = 1)
         {
-            Debug.Log($"{Tag} Drive, cnt: {cnt}, reverse: {reverse}, subdiv: {subDiv}");
+            LogInfo("todo method name", $"Drive, cnt: {cnt}, reverse: {reverse}, subdiv: {subDiv}");
             int deltaAngle = (reverse ? -1 : 1) * cnt * _stepAngleArcSec / subDiv;
             _rotatePosArcSec += deltaAngle;
             OnMotion?.Invoke(deltaAngle);

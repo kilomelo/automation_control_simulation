@@ -2,27 +2,41 @@ using UnityEngine;
 
 namespace ACS_Common.Base
 {
-    public class ACS_Object<T> where T : ACS_Object<T>
+    public class ACS_Object
     {
-        // protected virtual string Tag => GetType().Name;
-        protected static void LogMethod(string methodName, string info = null)
+        protected string Tag => GetType().Name;
+        protected void LogMethod(string methodName, string info = null)
         {
-            Debug.Log($"# {typeof(T).Name} # <{methodName}> {info} //--------------------------------------------------------------------------");
+            Debug.Log($"# {Tag} # <{methodName}> {info} //--------------------------------------------------------------------------");
         }
         
-        protected static void LogInfo(string methodName, string info)
+        protected void LogInfo(string methodName, string info)
         {
-            Debug.Log($"# {typeof(T).Name} # <{methodName}> {info}");
+            Debug.Log($"# {Tag} # <{methodName}> {info}");
         }
 
-        protected static  void LogErr(string methodName, string info)
+        protected void LogErr(string methodName, string info)
         {
-            Debug.LogError($"# {typeof(T).Name} # <{methodName}> {info}");
+            Debug.LogError($"# {Tag} # <{methodName}> {info}");
         }
         
-        protected static  void LogWarn(string methodName, string info)
+        protected void LogWarn(string methodName, string info)
         {
-            Debug.LogWarning($"# {typeof(T).Name} # <{methodName}> {info}");
+            Debug.LogWarning($"# {Tag} # <{methodName}> {info}");
+        }
+        
+        protected static void LogInfoStatic(string tag, string methodName, string info = null)
+        {
+            Debug.Log($"# {tag} # <{methodName}> {info} //========================================================================");
+        }
+        protected static void LogErrStatic(string tag, string methodName, string info)
+        {
+            Debug.LogError($"# {tag} # <{methodName}> {info} //========================================================================");
+        }
+        
+        protected void LogWarnStatic(string tag, string methodName, string info)
+        {
+            Debug.LogWarning($"# {tag} # <{methodName}> {info} //========================================================================");
         }
     }
 }
