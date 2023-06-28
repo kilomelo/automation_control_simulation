@@ -152,7 +152,7 @@ namespace ACS_Common.GCode
         private IEnumerator<ChunkReadReport> ReadEachChar(long initialPos, ActionEachChar actionEachChar)
         {
             const string m = nameof(ReadEachChar);
-            LogMethod(m, $"initialPos: {initialPos}, actionEachChar: {actionEachChar}, encoding: {encoding}");
+            // LogMethod(m, $"initialPos: {initialPos}, actionEachChar: {actionEachChar}, encoding: {encoding}");
             lock (_streamLock)
             {
                 // LogInfo(m, $"in lock");
@@ -240,7 +240,7 @@ namespace ACS_Common.GCode
         private IEnumerator<ChunkReadReport> ReadEachLine(long initialPos, ActionEachLine onLineStart, ActionEachLine onLineEnd)
         {
             const string m = nameof(ReadEachLine);
-            LogMethod(m, $"encoding: {encoding}");
+            // LogMethod(m, $"encoding: {encoding}");
 
             var lineCount = 0L;
             var detectedEOL = NULL;

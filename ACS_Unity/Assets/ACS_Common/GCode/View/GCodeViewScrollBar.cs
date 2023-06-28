@@ -6,14 +6,21 @@ using UnityEngine.EventSystems;
 namespace ACS_Common.GCode.View
 {
     [RequireComponent(typeof(RectTransform))]
-    public class GCodeViewScrollBar : ACS_Behaviour, IPointerDownHandler, IDragHandler, IBeginDragHandler
+    public class GCodeViewScrollBar : ViewBase, IPointerDownHandler, IDragHandler, IBeginDragHandler
     {
         [SerializeField] private RectTransform _handler;
         public bool SnapHandler = false;
         public float MinHandlerHeight = 1f;
-        private RectTransform _rectTransform;
         public Action<float> OnPosPercentage;
         public Action<long> OnPosIndex;
+
+        /// <summary>
+        /// 设置滚动位置
+        /// </summary>
+        public long ScrollIdx
+        {
+            set => SetScrollIdx(value);
+        }
 
         private long _total;
         private long _content;
@@ -33,20 +40,16 @@ namespace ACS_Common.GCode.View
             }
         }
         
-        void Awake()
-        {
-            _rectTransform = transform as RectTransform;
-        }
         public void OnPointerDown(PointerEventData eventData)
         {
             const string m = nameof(OnPointerDown);
-            LogMethod(m, $"eventData: {eventData}");
+            // LogMethod(m, $"eventData: {eventData}");
             
             var inHandler = PointInHandler(eventData.position);
             if (!inHandler)
             {
                 var localY = EventPosY2LocalPosY(eventData.position.y) + _handlerHeight * 0.5f;
-                LogInfo(m, $"localY: {localY}, percent: {Position2Percentage(localY)}");
+                // LogInfo(m, $"localY: {localY}, percent: {Position2Percentage(localY)}");
                 OnScrollPosChanged(Position2Percentage(localY));
                 _dragPointInHandlerY = _handlerHeight * 0.5f;
             }
@@ -56,14 +59,14 @@ namespace ACS_Common.GCode.View
                 if (null == _handler) return;
                 if (null == _rectTransform) return;
                 _dragPointInHandlerY = -_handler.InverseTransformPoint(eventData.position).y;
-                LogInfo(m, $"_dragPointInHandlerY: {_dragPointInHandlerY}");
+                // LogInfo(m, $"_dragPointInHandlerY: {_dragPointInHandlerY}");
             }
         }
 
         public void OnDrag(PointerEventData eventData)
         {
             const string m = nameof(OnDrag);
-            LogMethod(m, $"eventData: {eventData}, _dragPointInHandlerY: {_dragPointInHandlerY}");
+            // LogMethod(m, $"eventData: {eventData}, _dragPointInHandlerY: {_dragPointInHandlerY}");
             var localY = EventPosY2LocalPosY(eventData.position.y) + _dragPointInHandlerY;
             OnScrollPosChanged(Position2Percentage(localY));
         }
@@ -80,7 +83,8 @@ namespace ACS_Common.GCode.View
             const string m = nameof(OnScrollPosChanged);
             LogMethod(m, $"scrollPosPercentage: {scrollPosPercentage}, _total: {_total}, _content: {_content}");
             OnPosPercentage?.Invoke(scrollPosPercentage);
-            var index = Math.Clamp((long)((_total - _content + 1) * scrollPosPercentage), 0L, _total - _content);
+            var index = Math.Clamp((long)((_total - _content + 1) * scrollPosPercentage), 0L, Math.Max(_total - _content, 1L));
+            LogInfo(m, $"index: {index}");
             OnPosIndex?.Invoke(index);
             if (null != _handler)
             {
@@ -90,6 +94,24 @@ namespace ACS_Common.GCode.View
                 pos.y = SnapHandler ?
                         -(rect.height - _handler.rect.height) * (float)index / Math.Max(_total - _content, 1L) :
                         -(rect.height - _handler.rect.height) * scrollPosPercentage;
+                LogInfo(m, $"_handler.pos.y: {_handler.localPosition.y}, new y: {pos.y}");
+                _handler.localPosition = pos;
+            }
+        }
+
+        private void SetScrollIdx(long idx)
+        {
+            const string m = nameof(SetScrollIdx);
+            LogMethod(m, $"idx: {idx}");
+            idx = Math.Clamp(idx, 0L, Math.Max(_total - _content, 1L));
+            var percent = (float)idx / Math.Max(1L, _total - _content);
+            LogInfo(m, $"idx: {idx}, percent: {percent}");
+            if (null != _handler)
+            {
+                var rect = _rectTransform.rect;
+                var pos = _handler.localPosition;
+                pos.y = -(rect.height - _handler.rect.height) * percent;
+                LogInfo(m, $"_handler.pos.y: {_handler.localPosition.y}, new y: {pos.y}");
                 _handler.localPosition = pos;
             }
         }
@@ -105,22 +127,6 @@ namespace ACS_Common.GCode.View
         }
 
         /// <summary>
-        /// 将点事件数据转为本地坐标
-        /// </summary>
-        /// <param name="eventPosY"></param>
-        /// <returns></returns>
-        private float EventPosY2LocalPosY(float eventPosY)
-        {
-            const string m = nameof(EventPosY2LocalPosY);
-            LogMethod(m, $"eventPosY: {eventPosY}");
-            if (null == _rectTransform)
-            {
-                LogErr(m, "_rectTransform is null");
-                return 0f;
-            }
-            return _rectTransform.InverseTransformPoint(Vector2.up * eventPosY).y;
-        }
-        /// <summary>
         /// 将点事件数据转为本地坐标比例
         /// </summary>
         /// <param name="localPosY"></param>
@@ -128,7 +134,7 @@ namespace ACS_Common.GCode.View
         private float Position2Percentage(float localPosY)
         {
             const string m = nameof(Position2Percentage);
-            LogMethod(m, $"localPosY: {localPosY}");
+            // LogMethod(m, $"localPosY: {localPosY}");
             var rect = _rectTransform.rect;
             return Math.Clamp(-localPosY / (rect.height - _handlerHeight), 0f, 1f);
         }

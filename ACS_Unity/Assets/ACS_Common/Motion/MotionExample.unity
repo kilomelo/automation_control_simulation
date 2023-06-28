@@ -1611,7 +1611,7 @@ MonoBehaviour:
   _stepMotorDriverY: {fileID: 0}
   _stepMotorDriverZ: {fileID: 0}
   _stepMotorDriverE: {fileID: 0}
-  GCodeFilePath: Assets/Data/1.txt
+  GCodeFilePath: Assets/Data/2.txt
 --- !u!4 &1937352546
 Transform:
   m_ObjectHideFlags: 0
