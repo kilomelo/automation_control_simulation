@@ -28,6 +28,18 @@ namespace ACS_Common.GCode
         /// 索引是否已建立
         /// </summary>
         public bool IndexBuilt => null != _SOLOffsetIdxTreeRoot;
+        /// <summary>
+        /// 索引建立进度
+        /// </summary>
+        public float IndexBuildProgress => _indexBuildProgress;
+        private float _indexBuildProgress = 0f;
+
+        /// <summary>
+        /// 文件大小
+        /// </summary>
+        public long Size => _size;
+
+        private long _size;
 
         /// <summary>
         /// 总行数，这个值在建立索引后有效
@@ -89,8 +101,8 @@ namespace ACS_Common.GCode
         private object _streamLock = new object();
         public TextFileStream(string textFilePath)
         {
-            // const string m = Tag;
-            LogMethod("constructor", $"textFilePath: {textFilePath}");
+            const string m = nameof(TextFileStream);;
+            LogInfoStatic(m, m, $"textFilePath: {textFilePath}");
 
             FileStream fs = null;
             try
@@ -99,14 +111,17 @@ namespace ACS_Common.GCode
             }
             catch(IOException e)
             {
-                // LogErr(m, $"read file failed with message: \n{e}");
+                LogErrStatic(m, m, $"read file failed with message: \n{e}");
                 return;
             }
+
+            _size = fs.Length;
+            LogInfoStatic(m,m, $"file size: {fs.Length}, chunkCnt: {Math.Ceiling((float)fs.Length / _byteBufferSize)}");
             _stream = fs;
             _byteBuffer = new byte[_byteBufferSize];
             _sb = new StringBuilder();
             BuildLineIdxAsync();
-            // LogInfo(m, "end of constructor");
+            LogInfoStatic(m, m, $"end of constructor");
         }
         
         public void Dispose()
@@ -296,7 +311,7 @@ namespace ACS_Common.GCode
         private void BuildLineIdx()
         {
             const string m = nameof(BuildLineIdx);
-            LogMethod(m);
+            LogMethod(m, $"getType.Name: {GetType().Name}");
             var sw = new Stopwatch();
             sw.Start();
             if (null == _stream)
@@ -323,8 +338,12 @@ namespace ACS_Common.GCode
             
             using var itr = ReadEachLine(0, onLineStart, null);
             _totalLines = 0;
+            var chunkCnt = 0;
+            var totalChunk = Math.Ceiling((float)_size / _byteBufferSize);
             while (itr.MoveNext())
             {
+                chunkCnt++;
+                _indexBuildProgress = (float)(chunkCnt / totalChunk);
                 // LogInfo(m, $"chunk itr, itr.current: {itr.Current}");
                 if (0 != prevChunkLastLineStartOffset)
                 {
@@ -341,7 +360,7 @@ namespace ACS_Common.GCode
                     // else LogInfo(m, $"wow, such a big line.");
                 }
             }
-            LogInfo(m, $"lineCount: {_totalLines}");
+            LogInfo(m, $"lineCount: {_totalLines}, chunkCnt: {chunkCnt}");
             // LogInfo(m, $"idxTree before transform:");
             // root.Print();
             // 将_lineIdxRootNode转为BST
@@ -442,7 +461,7 @@ namespace ACS_Common.GCode
         private long SearchStartOfLineOffset(long lineIdx)
         {
             const string m = nameof(SearchStartOfLineOffset);
-            LogMethod(m, $"lineIdx: {lineIdx}");
+            // LogMethod(m, $"lineIdx: {lineIdx}");
             if (null == _SOLOffsetIdxTreeRoot)
             {
                 LogErr(m, $"idx not built");
@@ -459,47 +478,53 @@ namespace ACS_Common.GCode
                 return -1;
             }
             var node = _SOLOffsetIdxTreeRoot;
-            var prev = node;
+            var targetNode = node;
             // step 1 搜索比lineIdx小的行的偏移作为搜索起始位置
             while (true)
             {
                 if (node.Line < lineIdx)
                 {
+                    targetNode = node;
                     if (null == node.Right)
                     {
+                        // LogInfo(m, $"step 1, to right, but no right");
                         break;
                     }
-                    prev = node;
+                    // LogInfo(m, $"step 1, to right");
                     node = node.Right;
                 }
                 else if (node.Line > lineIdx)
                 {
                     if (null == node.Left)
                     {
-                        node = prev;
+                        // LogInfo(m, $"step 1, to left, but no left");
                         break;
                     }
-                    prev = node;
+                    // LogInfo(m, $"step 1, to left");
                     node = node.Left;
                 }
                 // equal
-                else break;
+                else
+                {
+                    targetNode = node;
+                    break;
+                }
             }
-            // LogInfo(m, $"step 1 finish, node: {node}");
+            // LogInfo(m, $"step 1 finish, targetNode: {targetNode}");
             
             // step 2 往后找到第lineIdx的位置
-            var pos = node.SOLOffset;
+            var pos = targetNode.SOLOffset;
             if (node.Line != lineIdx)
             {
-                var itr = ReadEachLine(node.SOLOffset, new ActionEachLine((long idx, long offset) =>
+                var itr = ReadEachLine(targetNode.SOLOffset, new ActionEachLine((long idx, long offset) =>
                 {
                     // LogInfo(m, $"step 2 ActionEachLine, idx: {idx}, offset: {offset}");
                     pos = offset;
-                    if (idx + node.Line == lineIdx)
+                    if (idx + targetNode.Line == lineIdx)
                     {
                         // LogInfo(m, $"ActionEachLine, find target, lineIdx: {idx}, offset: {offset}");
                     }
-                    return idx + node.Line < lineIdx;
+                    return idx + targetNode.Line < lineIdx;
                 }), null);
                 while (itr.MoveNext())
                 {
@@ -539,7 +564,7 @@ namespace ACS_Common.GCode
             const string m = nameof(GetEnumerator);
             lock (_streamLock)
             {
-                LogMethod(m, $"startLine: {startLine}");
+                // LogMethod(m, $"startLine: {startLine}");
                 if (null == _SOLOffsetIdxTreeRoot)
                 {
                     LogErr(m, $"idx not built");
@@ -566,7 +591,7 @@ namespace ACS_Common.GCode
                 }
 
                 _stream.Position = offset;
-                // LogInfo($"<{m}>, _stream.Position: {_stream.Position}");
+                // LogInfo(m, $"_stream.Position: {_stream.Position}");
                 var sr = new StreamReader(_stream);
                 while (true)
                 {

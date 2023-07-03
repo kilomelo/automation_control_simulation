@@ -28,6 +28,7 @@ namespace ACS_Common.GCode.View
         public void SetConfig(long total, long content)
         {
             const string m = nameof(SetConfig);
+            // LogMethod(m, $"total: {_total}, content: {content}, getType.Name: {GetType().Name}");
             _total = Math.Max(content, total);
             _content = content;
             if (null != _handler && null != _rectTransform)
@@ -35,7 +36,7 @@ namespace ACS_Common.GCode.View
                 var handlerSize = _handler.sizeDelta;
                 var rect = _rectTransform.rect;
                 var newSize = new Vector2(handlerSize.x, Math.Max(rect.height * ((float)_content / _total), MinHandlerHeight));
-                LogInfo(m, $"new size: {newSize}, (float)_content / _total: {(float)_content / _total}, rect.height: {rect.height}");
+                // LogInfo(m, $"new size: {newSize}, (float)_content / _total: {(float)_content / _total}, rect.height: {rect.height}");
                 _handler.sizeDelta = newSize;
             }
         }
@@ -75,16 +76,16 @@ namespace ACS_Common.GCode.View
         public void OnBeginDrag(PointerEventData eventData)
         {
             const string m = nameof(OnBeginDrag);
-            LogMethod(m, $"eventData: {eventData}");
+            // LogMethod(m, $"eventData: {eventData}");
         }
         
         private void OnScrollPosChanged(float scrollPosPercentage)
         {
             const string m = nameof(OnScrollPosChanged);
-            LogMethod(m, $"scrollPosPercentage: {scrollPosPercentage}, _total: {_total}, _content: {_content}");
+            // LogMethod(m, $"scrollPosPercentage: {scrollPosPercentage}, _total: {_total}, _content: {_content}");
             OnPosPercentage?.Invoke(scrollPosPercentage);
             var index = Math.Clamp((long)((_total - _content + 1) * scrollPosPercentage), 0L, Math.Max(_total - _content, 1L));
-            LogInfo(m, $"index: {index}");
+            // LogInfo(m, $"index: {index}");
             OnPosIndex?.Invoke(index);
             if (null != _handler)
             {
@@ -94,7 +95,7 @@ namespace ACS_Common.GCode.View
                 pos.y = SnapHandler ?
                         -(rect.height - _handler.rect.height) * (float)index / Math.Max(_total - _content, 1L) :
                         -(rect.height - _handler.rect.height) * scrollPosPercentage;
-                LogInfo(m, $"_handler.pos.y: {_handler.localPosition.y}, new y: {pos.y}");
+                // LogInfo(m, $"_handler.pos.y: {_handler.localPosition.y}, new y: {pos.y}");
                 _handler.localPosition = pos;
             }
         }
@@ -102,16 +103,16 @@ namespace ACS_Common.GCode.View
         private void SetScrollIdx(long idx)
         {
             const string m = nameof(SetScrollIdx);
-            LogMethod(m, $"idx: {idx}");
+            // LogMethod(m, $"idx: {idx}");
             idx = Math.Clamp(idx, 0L, Math.Max(_total - _content, 1L));
             var percent = (float)idx / Math.Max(1L, _total - _content);
-            LogInfo(m, $"idx: {idx}, percent: {percent}");
+            // LogInfo(m, $"idx: {idx}, percent: {percent}");
             if (null != _handler)
             {
                 var rect = _rectTransform.rect;
                 var pos = _handler.localPosition;
                 pos.y = -(rect.height - _handler.rect.height) * percent;
-                LogInfo(m, $"_handler.pos.y: {_handler.localPosition.y}, new y: {pos.y}");
+                // LogInfo(m, $"_handler.pos.y: {_handler.localPosition.y}, new y: {pos.y}");
                 _handler.localPosition = pos;
             }
         }

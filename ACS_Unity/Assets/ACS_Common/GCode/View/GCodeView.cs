@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Text;
 using ACS_Common.Base;
+using ACS_Common.Utils;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -24,7 +25,7 @@ namespace ACS_Common.GCode.View
         /// <summary>
         /// 展示行数，最小1，最大100
         /// </summary>
-        [SerializeField]
+        // [SerializeField]
         private int _displayLineCnt = 10;
 
         private StringBuilder _sb = new StringBuilder();
@@ -45,7 +46,7 @@ namespace ACS_Common.GCode.View
             const string m = nameof(UpdateTextField);
             startLineIdx = Math.Clamp(startLineIdx, 0, Math.Max(0, _stream.TotalLines - _displayLineCnt));
             if (startLineIdx == _displayStartLineIdx) return;
-            LogMethod(m, $"startLineIdx: {startLineIdx}");
+            // LogMethod(m, $"startLineIdx: {startLineIdx}");
             if (null == _textField)
             {
                 LogErr(m, "text field reference is null");
@@ -92,7 +93,7 @@ namespace ACS_Common.GCode.View
             }
 
             var readFromCache = i;
-            LogInfo(m, $"read {readFromCache} lines from cache");
+            // LogInfo(m, $"read {readFromCache} lines from cache");
             // 从数据源拿
             if (i < realDisplayLineCnt)
             {
@@ -107,9 +108,9 @@ namespace ACS_Common.GCode.View
                     CacheText(i + startLineIdx - 1, itr.Current);
                 }
                 _lastReadTextPosition = _stream.Position;
-                LogInfo(m, $"read stream finish at {_lastReadTextPosition}");
+                // LogInfo(m, $"read stream finish at {_lastReadTextPosition}");
             }
-            LogInfo(m, $"read {i - readFromCache} lines from stream, cache count: {_textLineCache.Count}");
+            // LogInfo(m, $"read {i - readFromCache - 1} lines from stream, cache count: {_textLineCache.Count}");
             PreserveCacheCapacity();
             // // 补充空行
             // while (i++ <= realDisplayLineCnt)
@@ -156,7 +157,8 @@ namespace ACS_Common.GCode.View
             }
             else
             {
-                _textField.text = string.Empty;                
+                _textField.text = string.Empty;
+                _displayLineCnt = Mathf.FloorToInt(_rectTransform.rect.height / _textField.fontSize);
             }
             StartCoroutine(CheckStreamIndexBuilt());
         }
@@ -193,15 +195,21 @@ namespace ACS_Common.GCode.View
         private IEnumerator CheckStreamIndexBuilt()
         {
             const string m = nameof(CheckStreamIndexBuilt);
-            LogMethod(m);
+            LogMethod(m, $"getType.Name: {GetType().Name}");
             if (null == _stream)
             {
                 LogErr(m, "stream holder reference is null");
                 yield break;
             }
 
+            // StringUtils.Test_ProgressBar();
             while (!_stream.IndexBuilt)
             {
+                // LogInfo(m, $"build index progress: {_stream.IndexBuildProgress}");
+                if (null != _textField)
+                {
+                    _textField.text = $"building index [{StringUtils.ProgressBar(_stream.IndexBuildProgress)}]";
+                }
                 yield return 0;
             }
             if (null == _stream)

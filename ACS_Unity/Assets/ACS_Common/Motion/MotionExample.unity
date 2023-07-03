@@ -463,7 +463,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 800, y: 1800}
+  m_SizeDelta: {x: 800, y: 1500}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &382134784
 MonoBehaviour:
@@ -520,7 +520,6 @@ MonoBehaviour:
   _width: 200
   _height: 200
   _scrollBarWidth: 100
-  _displayLineCnt: 70
   GCommandStreamHolderComp: {fileID: 1937352545}
 --- !u!1 &396936336
 GameObject:
@@ -1611,7 +1610,7 @@ MonoBehaviour:
   _stepMotorDriverY: {fileID: 0}
   _stepMotorDriverZ: {fileID: 0}
   _stepMotorDriverE: {fileID: 0}
-  GCodeFilePath: Assets/Data/2.txt
+  GCodeFilePath: D:/data/3DBenchy_mega.gcode
 --- !u!4 &1937352546
 Transform:
   m_ObjectHideFlags: 0

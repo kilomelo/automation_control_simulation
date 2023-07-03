@@ -10,7 +10,7 @@ namespace ACS_Common.GCode.View
         /// <summary>
         /// 缓存大小
         /// </summary>
-        private int _cacheCapacity = 100;
+        private int _cacheCapacity = 200;
         /// <summary>
         /// 文本缓存，key为行号
         /// </summary>

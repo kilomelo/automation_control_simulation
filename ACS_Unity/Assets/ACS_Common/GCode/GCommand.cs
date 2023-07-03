@@ -121,7 +121,8 @@ namespace ACS_Common.GCode
         /// <param name="textFilePath"></param>
         public GCommandStream(string textFilePath) : base(textFilePath)
         {
-            LogMethod("GCommandStream");
+            const string m = nameof(GCommandStream);;
+            LogInfoStatic(m, m, $"textFilePath: {textFilePath}");
         }
     }
 }
