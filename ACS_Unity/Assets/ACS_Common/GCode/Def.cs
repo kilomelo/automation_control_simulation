@@ -7,7 +7,7 @@ namespace ACS_Common.GCode
     {
         public enum EGCommandType : byte
         {
-            Invalid = 0,
+            None = 0,
             G = 2,
             M = 3,
         }

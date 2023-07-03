@@ -22,10 +22,21 @@ namespace ACS_Common.GCode.View
         private float _height = 200f;
         [SerializeField]
         private float _scrollBarWidth = 100f;
+        
+        #region color define
+
+        private const string ColorLineIdx = "BCAA94";
+        private const string ColorCommandType = "E5DAAA";
+        private const string ColorCommandNumber = "F8EFC9";
+        private const string ColorCommandComment = "9BC375";
+        private const string ColorCommandParam = "ADD9EF";
+        
+        #endregion
+        
         /// <summary>
         /// 展示行数，最小1，最大100
+        /// 由UI尺寸自动计算得来
         /// </summary>
-        // [SerializeField]
         private int _displayLineCnt = 10;
 
         private StringBuilder _sb = new StringBuilder();
@@ -79,39 +90,16 @@ namespace ACS_Common.GCode.View
             
             _sb.Clear();
             var i = 0;
-            var realDisplayLineCnt = Mathf.Clamp(_displayLineCnt, 1, 100);
-            // 从缓存拿
-            while (i < realDisplayLineCnt)
+            var realDisplayLineCnt = Mathf.Clamp(_displayLineCnt, 1, 9999);
+            using var itr = _stream.GetEnumerator(startLineIdx);
+            LogInfo(m, $"realDisplayLineCnt: {realDisplayLineCnt}");
+            while (itr.MoveNext() && i++ < realDisplayLineCnt)
             {
-                if (!_textLineCache.TryGetValue(i + startLineIdx, out var cachedText)) break;
-                var lineIdx = i + startLineIdx + 1;
-                // LogInfo(m, $"_sb.Append({cachedText})");
-                // LogInfo(m, $"line idx str: len: {lineIdx.ToString().PadRight(maxLineIdxLen).Length}, content: [{lineIdx.ToString().PadRight(maxLineIdxLen)}]");
-                _sb.Append(
-                    $"<i><color=#{{3D8AFF}}>{lineIdx.ToString().PadRight(maxLineIdxLen)}</color></i>  {cachedText}\n");
-                i++;
+                // LogInfo(m, $"i: {i}, _sb.Append({itr.Current})");
+                // LogInfo(m, $"line idx str: len: {(i + startLineIdx).ToString().PadRight(maxLineIdxLen).Length}, content: [{(i + startLineIdx).ToString().PadRight(maxLineIdxLen)}]");
+                _sb.Append($"<i><color=#{ColorLineIdx}>{(i + startLineIdx).ToString().PadRight(maxLineIdxLen)}</color></i>  {CommandRichText(itr.Current)}\n");
             }
-
-            var readFromCache = i;
-            // LogInfo(m, $"read {readFromCache} lines from cache");
-            // 从数据源拿
-            if (i < realDisplayLineCnt)
-            {
-                using var itr = _stream.GetEnumerator(i + startLineIdx);
-                while (itr.MoveNext() && i++ < realDisplayLineCnt)
-                {
-                    // LogInfo(m, $"_sb.Append({itr.Current})");
-                    // LogInfo(m, $"line idx str: len: {(i + startLineIdx).ToString().PadRight(maxLineIdxLen).Length}, content: [{(i + startLineIdx).ToString().PadRight(maxLineIdxLen)}]");
-                    _sb.Append($"<i><color=#{{3D8AFF}}>{(i + startLineIdx).ToString().PadRight(maxLineIdxLen)}</color></i>  {itr.Current}\n");
-                    // cache text
-                    // LogInfo(m, $"cache {itr.Current} as {i +startLineIdx - 1}");
-                    CacheText(i + startLineIdx - 1, itr.Current);
-                }
-                _lastReadTextPosition = _stream.Position;
-                // LogInfo(m, $"read stream finish at {_lastReadTextPosition}");
-            }
-            // LogInfo(m, $"read {i - readFromCache - 1} lines from stream, cache count: {_textLineCache.Count}");
-            PreserveCacheCapacity();
+            
             // // 补充空行
             // while (i++ <= realDisplayLineCnt)
             // {
@@ -122,7 +110,7 @@ namespace ACS_Common.GCode.View
             _textField.text = _sb.ToString();
         }
 
-        void Start()
+        private void Start()
         {
             const string m = nameof(Start);
             
@@ -166,11 +154,6 @@ namespace ACS_Common.GCode.View
         private void OnDestroy()
         {
             if (null != _scrollBar) _scrollBar.OnPosIndex -= OnScrollPos;
-        }
-
-        void Update()
-        {
-            // DisplayLineIdx = Mathf.FloorToInt(Time.realtimeSinceStartup);
         }
 
         private void OnScrollPos(long index)
@@ -223,6 +206,36 @@ namespace ACS_Common.GCode.View
             DisplayLineIdx = 0;
         }
 
+        private StringBuilder _sbForCommandRichText = new StringBuilder();
+        private string CommandRichText(GCommand command)
+        {
+            if (null == command) return "<color=#{{FF9999}}>null</color>";
+            _sbForCommandRichText.Clear();
+            if (command.CommandType != Def.EGCommandType.None)
+            {
+                _sbForCommandRichText.Append($"<color=#{ColorCommandType}>{command.CommandType}</color><color=#{ColorCommandNumber}>{command.Number}</color>");
+                if (null != command.Params)
+                {
+                    foreach (var param in command.Params)
+                    {
+                        if (null != param)
+                        {
+                            _sbForCommandRichText.Append($" <color=#{ColorCommandParam}>{param.Name}{param.Value}</color>");
+                        }
+                    }
+                }
+                if (null != command.Comment)
+                {
+                    _sbForCommandRichText.Append(' ');
+                }
+            }
+
+            if (null != command.Comment)
+            {
+                _sbForCommandRichText.Append($"<color=#{ColorCommandComment}>;{command.Comment}</color>");
+            }
+            return _sbForCommandRichText.ToString();
+        }
         #region interactive
         private float _dragPointY;
         private long _dragStartDisplayLine;

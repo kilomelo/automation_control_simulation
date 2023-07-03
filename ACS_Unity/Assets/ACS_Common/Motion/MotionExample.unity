@@ -1610,7 +1610,7 @@ MonoBehaviour:
   _stepMotorDriverY: {fileID: 0}
   _stepMotorDriverZ: {fileID: 0}
   _stepMotorDriverE: {fileID: 0}
-  GCodeFilePath: D:/data/3DBenchy_mega.gcode
+  GCodeFilePath: D:/data/3DBenchy.gcode
 --- !u!4 &1937352546
 Transform:
   m_ObjectHideFlags: 0

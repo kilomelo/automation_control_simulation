@@ -7,6 +7,14 @@ namespace ACS_Common.Utils
     public static class StringUtils
     {
         private static StringBuilder _sb_ProgressBar = new StringBuilder();
+        /// <summary>
+        /// 归一化浮点进度转显示用字符串进度条
+        /// </summary>
+        /// <param name="progress">归一化浮点进度</param>
+        /// <param name="digits">百分比进度显示小数点后位数，默认0，即至多显示个位数字</param>
+        /// <param name="complete">已完成部分字符</param>
+        /// <param name="incomplete">未完成部分字符</param>
+        /// <returns>字符串进度条</returns>
         public static string ProgressBar(float progress, int digits = 0, char complete = '#', char incomplete = '-')
         {
             // Debug.Log($"ProgressBar, progress: [{progress}], f: [{f}]");
@@ -43,6 +51,9 @@ namespace ACS_Common.Utils
             return _sb_ProgressBar.ToString();
         }
 
+        /// <summary>
+        /// ProgressBar方法的测试用例
+        /// </summary>
         public static void Test_ProgressBar()
         {
             var testProgress = new float[] {0f, 1f, 0.54321f, 0.34567f, -0.1f, 1.1f};

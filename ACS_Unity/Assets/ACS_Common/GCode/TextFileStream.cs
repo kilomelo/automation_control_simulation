@@ -91,17 +91,17 @@ namespace ACS_Common.GCode
         }
         // 索引树根节点
         private SOLOffsetNode _SOLOffsetIdxTreeRoot;
-        private Stream _stream;
+        protected Stream _stream;
         private Encoding encoding;
         private byte[] _byteBuffer;
         private StringBuilder _sb;
         // 总行数，这个值在建立索引后有效
         private long _totalLines;
 
-        private object _streamLock = new object();
+        protected object _streamLock = new object();
         public TextFileStream(string textFilePath)
         {
-            const string m = nameof(TextFileStream);;
+            const string m = nameof(TextFileStream);
             LogInfoStatic(m, m, $"textFilePath: {textFilePath}");
 
             FileStream fs = null;
