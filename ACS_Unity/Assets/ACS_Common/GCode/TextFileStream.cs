@@ -311,7 +311,7 @@ namespace ACS_Common.GCode
         private void BuildLineIdx()
         {
             const string m = nameof(BuildLineIdx);
-            LogMethod(m, $"getType.Name: {GetType().Name}");
+            LogMethod(m);
             var sw = new Stopwatch();
             sw.Start();
             if (null == _stream)
@@ -596,9 +596,11 @@ namespace ACS_Common.GCode
                 while (true)
                 {
                     var line = sr.ReadLine();
-                    if (null == line) yield break;
+                    if (null == line) break;
                     yield return line;
                 }
+                // LogInfo(m, "sr.Dispose();");
+                // sr.Dispose();
             }
         }
 

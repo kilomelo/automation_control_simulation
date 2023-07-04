@@ -25,11 +25,19 @@ namespace ACS_Common.GCode.View
         
         #region color define
 
-        private const string ColorLineIdx = "BCAA94";
-        private const string ColorCommandType = "E5DAAA";
-        private const string ColorCommandNumber = "F8EFC9";
+        private const string ColorDefautlText = "EEEEEE";
+        private const string ColorLineIdx = "B0A597";
+        private const string ColorInvalid = "FF6666";
+        
+        private const string ColorCommandTypeM = "E5DAAA";
+        private const string ColorCommandTypeG = "AFEFF6";
         private const string ColorCommandComment = "9BC375";
-        private const string ColorCommandParam = "ADD9EF";
+        private const string ColorCommandParamX = "FFB3A5";
+        private const string ColorCommandParamY = "B2E080";
+        private const string ColorCommandParamZ = "86C9FF";
+        private const string ColorCommandParamE = "80E0CE";
+        private const string ColorCommandParamF = "F1EE7F";
+        private const string ColorCommandParamS = "E1B1FF";
         
         #endregion
         
@@ -92,8 +100,8 @@ namespace ACS_Common.GCode.View
             var i = 0;
             var realDisplayLineCnt = Mathf.Clamp(_displayLineCnt, 1, 9999);
             using var itr = _stream.GetEnumerator(startLineIdx);
-            LogInfo(m, $"realDisplayLineCnt: {realDisplayLineCnt}");
-            while (itr.MoveNext() && i++ < realDisplayLineCnt)
+            // LogInfo(m, $"realDisplayLineCnt: {realDisplayLineCnt}");
+            while (i++ < realDisplayLineCnt && itr.MoveNext())
             {
                 // LogInfo(m, $"i: {i}, _sb.Append({itr.Current})");
                 // LogInfo(m, $"line idx str: len: {(i + startLineIdx).ToString().PadRight(maxLineIdxLen).Length}, content: [{(i + startLineIdx).ToString().PadRight(maxLineIdxLen)}]");
@@ -178,7 +186,7 @@ namespace ACS_Common.GCode.View
         private IEnumerator CheckStreamIndexBuilt()
         {
             const string m = nameof(CheckStreamIndexBuilt);
-            LogMethod(m, $"getType.Name: {GetType().Name}");
+            LogMethod(m);
             if (null == _stream)
             {
                 LogErr(m, "stream holder reference is null");
@@ -211,16 +219,63 @@ namespace ACS_Common.GCode.View
         {
             if (null == command) return "<color=#{{FF9999}}>null</color>";
             _sbForCommandRichText.Clear();
-            if (command.CommandType != Def.EGCommandType.None)
+            if (command.CommandType == Def.EGCommandType.Invalid)
             {
-                _sbForCommandRichText.Append($"<color=#{ColorCommandType}>{command.CommandType}</color><color=#{ColorCommandNumber}>{command.Number}</color>");
+                _sbForCommandRichText.Append($"<color=#{ColorInvalid}>{command.RawStr}</color>");
+                return _sbForCommandRichText.ToString();
+            }
+            else if (command.CommandType != Def.EGCommandType.None)
+            {
+                var commandTypeColor = ColorDefautlText;
+                var commandNumberColor = ColorDefautlText;
+                switch (command.CommandType)
+                {
+                    case Def.EGCommandType.G:
+                        commandTypeColor = ColorCommandTypeG;
+                        break;
+                    case Def.EGCommandType.M:
+                        commandTypeColor = ColorCommandTypeM;
+                        break;
+                    case Def.EGCommandType.Invalid:
+                        commandTypeColor = ColorInvalid;
+                        break;
+                }
+                _sbForCommandRichText.Append($"<color=#{commandTypeColor}>{command.CommandType}{command.Number}</color>");
                 if (null != command.Params)
                 {
                     foreach (var param in command.Params)
                     {
                         if (null != param)
                         {
-                            _sbForCommandRichText.Append($" <color=#{ColorCommandParam}>{param.Name}{param.Value}</color>");
+                            var paramColor = ColorDefautlText;
+                            switch (param.Name)
+                            {
+                                case 'X':
+                                case 'x':
+                                    paramColor = ColorCommandParamX;
+                                    break;
+                                case 'Y':
+                                case 'y':
+                                    paramColor = ColorCommandParamY;
+                                    break;
+                                case 'Z':
+                                case 'z':
+                                    paramColor = ColorCommandParamZ;
+                                    break;
+                                case 'E':
+                                case 'e':
+                                    paramColor = ColorCommandParamE;
+                                    break;
+                                case 'F':
+                                case 'f':
+                                    paramColor = ColorCommandParamF;
+                                    break;
+                                case 'S':
+                                case 's':
+                                    paramColor = ColorCommandParamS;
+                                    break;
+                            }
+                            _sbForCommandRichText.Append($" <color=#{paramColor}>{param.Name}{param.Value}</color>");
                         }
                     }
                 }

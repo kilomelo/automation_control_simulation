@@ -8,8 +8,9 @@ namespace ACS_Common.GCode
         public enum EGCommandType : byte
         {
             None = 0,
-            G = 2,
-            M = 3,
+            G = 1,
+            M = 2,
+            Invalid = 3,
         }
     }
 }
