@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace ACS_Common.Base
@@ -12,7 +13,13 @@ namespace ACS_Common.Base
             Init();
         }
 
+        private void OnDestroy()
+        {
+            Clear();
+        }
+
         protected virtual void Init() {}
+        protected virtual void Clear() {}
 
         protected string Tag => GetType().Name;
         protected void LogMethod(string methodName, string info = null)

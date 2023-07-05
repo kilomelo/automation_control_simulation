@@ -38,6 +38,9 @@ namespace ACS_Common.GCode.View
                 var newSize = new Vector2(handlerSize.x, Math.Max(rect.height * ((float)_content / _total), MinHandlerHeight));
                 // LogInfo(m, $"new size: {newSize}, (float)_content / _total: {(float)_content / _total}, rect.height: {rect.height}");
                 _handler.sizeDelta = newSize;
+                var localPos = _handler.localPosition;
+                localPos.y = 0f;
+                _handler.localPosition = localPos;
             }
         }
         

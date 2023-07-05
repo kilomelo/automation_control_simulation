@@ -49,28 +49,31 @@ namespace ACS_Common.Motion.LinearMotion
         public Action<int> OnLimit { get; set; }
         protected override void Init()
         {
-            LogInfo("todo method name", $"Init");
+            const string m = nameof(Init);
+            LogMethod(m);
             if (null != _driveWheelSource) _driveWheelSource.AsRotaryMotion.OnMotion += OnDriveWheelSourceMotion;
             _curPos = _initialPos;
         }
 
-        private void OnDestroy()
+        protected override void Clear()
         {
-            LogInfo("todo method name", $"OnDestroy");
+            const string m = nameof(Clear);
+            LogMethod(m);
             if (null != _driveWheelSource) _driveWheelSource.AsRotaryMotion.OnMotion -= OnDriveWheelSourceMotion;
         }
 
         public void SetDriveWheelSource(MotionBehaviour motionBehaviour)
         {
-            LogInfo("todo method name", $"SetDriveWheelSource, motionBehaviour: {motionBehaviour}");
+            const string m = nameof(SetDriveWheelSource);
+            LogMethod(m, $"motionBehaviour: {motionBehaviour}");
             if (null == motionBehaviour)
             {
-                LogErr("todo method name", $"SetDriveWheelSource failed, monoMotion is null");
+                LogErr(m, $"failed, monoMotion is null");
                 return;
             }
             if (!motionBehaviour.IsRotaryMotion)
             {
-                LogErr("todo method name", $"SetDriveWheelSource failed, monoMotion is not a RotaryMotion");
+                LogErr(m, $"failed, monoMotion is not a RotaryMotion");
                 return;
             }
             _driveWheelSource = motionBehaviour;
@@ -79,7 +82,8 @@ namespace ACS_Common.Motion.LinearMotion
 
         public void UnsetDriveWheelSource()
         {
-            LogInfo("todo method name", $"UnsetDriveWheelSource， _driveWheelSource： {_driveWheelSource}");
+            const string m = nameof(UnsetDriveWheelSource);
+            LogMethod(m, $"_driveWheelSource： {_driveWheelSource}");
             if (null == _driveWheelSource) return;
             _driveWheelSource.AsRotaryMotion.OnMotion -= OnDriveWheelSourceMotion;
             _driveWheelSource = null;
@@ -87,8 +91,9 @@ namespace ACS_Common.Motion.LinearMotion
 
         private void OnDriveWheelSourceMotion(int deltaArcSec)
         {
+            const string m = nameof(OnDriveWheelSourceMotion);
             var deltaTangentDistance = _toothCnt * _toothPitchUm * deltaArcSec / (360 * 60 * 60);
-            LogInfo("todo method name", $"OnDriveWheelSourceMotion, deltaArcSec: {deltaArcSec}, deltaTangentDistance: {deltaTangentDistance}");
+            LogMethod(m, $"deltaArcSec: {deltaArcSec}, deltaTangentDistance: {deltaTangentDistance}");
             if (_curPos + deltaTangentDistance < 0)
             {
                 deltaTangentDistance = -_curPos;
@@ -105,7 +110,7 @@ namespace ACS_Common.Motion.LinearMotion
             {
                 OnMotion?.Invoke(deltaTangentDistance);
             }
-            LogInfo("todo method name", $"OnDriveWheelSourceMotion, final deltaTangentDistance: {deltaTangentDistance}");
+            LogInfo(m, $"final deltaTangentDistance: {deltaTangentDistance}");
         }
     }
 }

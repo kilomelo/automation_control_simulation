@@ -14,7 +14,7 @@ namespace ACS_Common.GCode.View
     /// </summary>
     public partial class GCodeView : ViewBase, IPointerDownHandler, IPointerUpHandler, IDragHandler
     {
-        [SerializeField] private TextMeshProUGUI _textField;
+        [SerializeField] protected TextMeshProUGUI _textField;
         [SerializeField] private GCodeViewScrollBar _scrollBar;
         
         #region color define
@@ -39,22 +39,23 @@ namespace ACS_Common.GCode.View
         /// 展示行数，最小1，最大100
         /// 由UI尺寸自动计算得来
         /// </summary>
-        private int _displayLineCnt = 10;
+        protected int _displayLineCnt = 10;
 
         private StringBuilder _sb = new StringBuilder();
         private long _displayStartLineIdx = -1L;
 
         public MonoBehaviour GCommandStreamHolderComp;
-        private IGCommandStreamHolder _streamHolder;
+        protected IGCommandStreamHolder _streamHolder;
         private GCommandStream _stream => _streamHolder?.Stream;
         // 上一次updateText时读取的最后位置
         private long _lastReadTextPosition;
-        private long DisplayLineIdx
+        protected virtual long DisplayLineIdx
         {
+            get => _displayStartLineIdx;
             set => UpdateTextField(value);
         }
 
-        private void UpdateTextField(long startLineIdx)
+        protected virtual void UpdateTextField(long startLineIdx)
         {
             const string m = nameof(UpdateTextField);
             startLineIdx = Math.Clamp(startLineIdx, 0, Math.Max(0, _stream.TotalLines - _displayLineCnt));
@@ -115,11 +116,69 @@ namespace ACS_Common.GCode.View
         private void Start()
         {
             const string m = nameof(Start);
-            
-            _streamHolder = GCommandStreamHolderComp as IGCommandStreamHolder;
+            var streamHolder = GCommandStreamHolderComp as IGCommandStreamHolder;
+            if (null != streamHolder) SetStreamHolder(GCommandStreamHolderComp as IGCommandStreamHolder);
+        }
+
+        protected void SetStreamHolder(IGCommandStreamHolder streamHolder)
+        {
+            const string m = nameof(SetStreamHolder);
+            LogMethod(m, $"streamHolder: {streamHolder}");
+            if (null != _streamHolder)
+            {
+                _streamHolder.OnStreamUpdate -= OnStreamUpdate;
+            }
+            _streamHolder = streamHolder;
+            if (null == _scrollBar)
+            {
+                LogErr(m, "_scrollBar reference is null");
+            }
+            else
+            {
+                _scrollBar.SetConfig(1, 1);
+                _scrollBar.OnPosIndex += OnScrollPos;
+            }
+            if (null != _textField) _textField.text = string.Empty;
+
             if (null == _streamHolder)
             {
-                LogErr(m, "GCommandStreamHolderComp is not IGCommandStreamHolder");
+                LogErr(m, "_streamHolder is null");
+                return;
+            }
+            if (null != _streamHolder.Stream) OnStreamUpdate();
+            _streamHolder.OnStreamUpdate += OnStreamUpdate;
+        }
+
+        protected override void Clear()
+        {
+            base.Clear();
+            if (null != _scrollBar) _scrollBar.OnPosIndex -= OnScrollPos;
+            if (null != _streamHolder) _streamHolder.OnStreamUpdate -= OnStreamUpdate;
+        }
+
+        private void OnScrollPos(long index)
+        {
+            const string m = nameof(OnScrollPos);
+            // LogMethod(m, $"index: {index}");
+            if (null == _stream)
+            {
+                LogErr(m, "stream holder reference is null");
+                return;
+            }
+            if (_stream.IndexBuilt)
+            {
+                DisplayLineIdx = index;
+            }
+        }
+
+        protected virtual void OnStreamUpdate()
+        {
+            const string m = nameof(OnStreamUpdate);
+            LogMethod(m);
+            if (null == _streamHolder)
+            {
+                LogErr(m, "_streamHolder is null");
+                return;
             }
             if (null == _scrollBar)
             {
@@ -127,12 +186,12 @@ namespace ACS_Common.GCode.View
             }
             else
             {
-                _scrollBar.OnPosIndex += OnScrollPos;
                 if (null == _stream)
                 {
                     LogErr(m, "stream of stream holder is null");
+                    return;
                 }
-                else if (_stream.IndexBuilt)
+                if (_stream.IndexBuilt)
                 {
                     _scrollBar.SetConfig(_displayLineCnt, _stream.TotalLines);
                 }
@@ -149,28 +208,10 @@ namespace ACS_Common.GCode.View
             {
                 _textField.text = string.Empty;
                 _displayLineCnt = Mathf.FloorToInt(_rectTransform.rect.height / _textField.fontSize);
+                _displayStartLineIdx = -1;
             }
+            StopAllCoroutines();
             StartCoroutine(CheckStreamIndexBuilt());
-        }
-
-        private void OnDestroy()
-        {
-            if (null != _scrollBar) _scrollBar.OnPosIndex -= OnScrollPos;
-        }
-
-        private void OnScrollPos(long index)
-        {
-            const string m = nameof(OnScrollPos);
-            // LogMethod(m, $"index: {index}");
-            if (null == _stream)
-            {
-                LogErr(m, "stream holder reference is null");
-                return;
-            }
-            if (_stream.IndexBuilt)
-            {
-                DisplayLineIdx = index;
-            }
         }
 
         /// <summary>
@@ -221,7 +262,6 @@ namespace ACS_Common.GCode.View
             else if (command.CommandType != Def.EGCommandType.None)
             {
                 var commandTypeColor = ColorDefautlText;
-                var commandNumberColor = ColorDefautlText;
                 switch (command.CommandType)
                 {
                     case Def.EGCommandType.G:
@@ -320,13 +360,18 @@ namespace ACS_Common.GCode.View
             var deltaLine = deltaY / _textField.fontSize;
             var targetLineIdx = _dragStartDisplayLine + (long)Math.Floor(deltaLine);
             OnScrollPos(targetLineIdx);
-            _scrollBar.ScrollIdx = targetLineIdx;
+            ForceSetScrollBarPos(targetLineIdx);
         }
-        #endregion
-
+        
         public void OnPointerUp(PointerEventData eventData)
         {
             _dragPointY = 1f;
         }
+
+        protected void ForceSetScrollBarPos(long lineIdx)
+        {
+            _scrollBar.ScrollIdx = lineIdx;
+        }
+        #endregion
     }
 }
