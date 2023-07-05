@@ -1,8 +1,6 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
 using ACS_Common.Base;
 
 namespace ACS_Common.GCode
@@ -19,36 +17,24 @@ namespace ACS_Common.GCode
         {
             public char Name;
             public float Value;
+            public string RawStr;
 
             public Param(string str)
             {
                 const string m = nameof(Param);
-                // regex version, 因为gc太多弃用
-                // LogInfoStatic(m, m, $"str: [{str}]");
-                // var paramNameMatches = Regex.Matches(str, GTools.Regex.GCodeCommand.ParamName);
-                // if (paramNameMatches.Count != 1)
-                // {
-                //     LogErrStatic(m, m, $"invalid param name, raw string is: {str}");
-                //     return;
-                // }
-                // Name = paramNameMatches[0].ToString();
-                // var paramValueMatches = Regex.Matches(str, GTools.Regex.GCodeCommand.ParamValue);
-                // if (paramValueMatches.Count != 1 || (paramValueMatches.Count == 1 && !float.TryParse(paramValueMatches[0].ToString(), out Value)))
-                // {
-                //     LogErrStatic(m, m, $"invalid param value, raw string is: {str}");
-                // }
                 if (string.IsNullOrEmpty(str))
                 {
                     LogErrStatic(m, m, $"invalid raw string, raw string is: {str}");
                     return;
                 }
+                RawStr = str;
                 Name = str[0];
                 if (!(Name is <= 'Z' and >= 'A' || Name is <= 'z' and >= 'a'))
                 {
                     LogErrStatic(m, m, $"invalid param name, raw string is: {str}");
                     return;
                 }
-                if (!float.TryParse(str[1..], out Value))
+                if (str.Length > 1 && !float.TryParse(str[1..], out Value))
                 {
                     LogErrStatic(m, m, $"invalid param value, raw string is: {str}");
                 }
@@ -97,12 +83,8 @@ namespace ACS_Common.GCode
             const int searchCommandNumber = 1;
             // 搜索params
             const int searchParams = 2;
-            // // 提取params
-            // const int getParams = 3;
-            // 搜索注释开头
-            const int searchComment = 4;
             // 提取comment
-            const int getComment = 5;
+            const int getComment = 3;
             var progress = 0;
             var startOfCommandNumber = 0;
             var startOfComment = 0;
@@ -189,17 +171,6 @@ namespace ACS_Common.GCode
                         }
                         break;
                     }
-                    // 搜索注释开头
-                    case searchComment:
-                    {
-                        if (str[i] == ';')
-                        {
-                            startOfComment = i + 1;
-                            progress = getComment;
-                            // LogInfoStatic(m, m, $"f, i: {i}, change progress from searchComment to getComment");
-                        }
-                        break;
-                    }
                     // 提取comment
                     case getComment:
                     {
@@ -225,51 +196,6 @@ namespace ACS_Common.GCode
             {
                 SplitParams(str[startOfParams..]);
             } 
-            return;
-            // regex version, 因为gc太多弃用
-            var validCommands = Regex.Matches(str, GTools.Regex.GCodeCommand.Check);
-            // 如果有有效命令
-            if (validCommands.Count == 1)
-            {
-                var validCommandStr = validCommands[0].ToString();
-                var commandTypeMatches = Regex.Matches(validCommandStr, GTools.Regex.GCodeCommand.Type);
-                if (commandTypeMatches.Count != 1)
-                {
-                    LogErrStatic(m, m, $"invalid command type, raw string is: {validCommandStr}");
-                    return;
-                }
-                if (Enum.TryParse<Def.EGCommandType>(commandTypeMatches[0].ToString(), out var commandType))
-                {
-                    CommandType = commandType;
-                }
-                else
-                {
-                    CommandType = Def.EGCommandType.None;
-                }
-                
-            
-                var commandNumberMatches = Regex.Matches(validCommandStr, GTools.Regex.GCodeCommand.Number);
-                if (commandNumberMatches.Count != 1 || !int.TryParse(commandNumberMatches[0].ToString(), out var number))
-                {
-                    LogErrStatic(m, m, $"invalid command number, raw string is: {validCommandStr}");
-                    return;
-                }
-                Number = number;
-                
-                var commandParamMatches = Regex.Matches(validCommandStr, GTools.Regex.GCodeCommand.Param);
-                // LogInfoStatic(m, m, $"commandParams count: {commandParamMatches.Count}");
-
-                var i = 0;
-                Params = new Param[commandParamMatches.Count];
-                foreach (var param in commandParamMatches)
-                {
-                    // LogInfoStatic(m, m, $"param[{i}]: {param}");
-                    Params[i] = new Param(param.ToString());
-                    i++;
-                }
-            }
-            var comments = Regex.Matches(str, GTools.Regex.GCodeCommand.Comment);
-            if (comments.Count == 1) Comment = comments[0].ToString();
         }
 
         private void SplitParams(string paramStr)
@@ -310,15 +236,6 @@ namespace ACS_Common.GCode
         /// 缓存队列，行号
         /// </summary>
         private Queue<long> _commandCacheQueue = new Queue<long>();
-
-        // /// <summary>
-        // /// 有效命令
-        // /// </summary>
-        // private Dictionary<int, GCommand> _commands;
-        // /// <summary>
-        // /// 注释缓存字典，key为行号
-        // /// </summary>
-        // private Dictionary<long, string> _comments;
 
         /// <summary>
         /// 从文本文件构造GCommandStream

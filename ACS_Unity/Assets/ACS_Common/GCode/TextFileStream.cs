@@ -6,7 +6,6 @@ using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 using ACS_Common.Base;
-using Debug = UnityEngine.Debug;
 
 namespace ACS_Common.GCode
 {
@@ -599,8 +598,6 @@ namespace ACS_Common.GCode
                     if (null == line) break;
                     yield return line;
                 }
-                // LogInfo(m, "sr.Dispose();");
-                // sr.Dispose();
             }
         }
 

@@ -517,9 +517,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _textField: {fileID: 1605278173}
   _scrollBar: {fileID: 1536672025}
-  _width: 200
-  _height: 200
-  _scrollBarWidth: 100
   GCommandStreamHolderComp: {fileID: 1937352545}
 --- !u!1 &396936336
 GameObject:
@@ -1610,7 +1607,7 @@ MonoBehaviour:
   _stepMotorDriverY: {fileID: 0}
   _stepMotorDriverZ: {fileID: 0}
   _stepMotorDriverE: {fileID: 0}
-  GCodeFilePath: D:/data/3DBenchy.gcode
+  GCodeFilePath: D:/data/3DBenchy_mega.gcode
 --- !u!4 &1937352546
 Transform:
   m_ObjectHideFlags: 0

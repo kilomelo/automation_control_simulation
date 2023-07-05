@@ -16,12 +16,6 @@ namespace ACS_Common.GCode.View
     {
         [SerializeField] private TextMeshProUGUI _textField;
         [SerializeField] private GCodeViewScrollBar _scrollBar;
-        [SerializeField]
-        private float _width = 200f;
-        [SerializeField]
-        private float _height = 200f;
-        [SerializeField]
-        private float _scrollBarWidth = 100f;
         
         #region color define
 
@@ -275,7 +269,7 @@ namespace ACS_Common.GCode.View
                                     paramColor = ColorCommandParamS;
                                     break;
                             }
-                            _sbForCommandRichText.Append($" <color=#{paramColor}>{param.Name}{param.Value}</color>");
+                            _sbForCommandRichText.Append($" <color=#{paramColor}>{param.RawStr}</color>");
                         }
                     }
                 }
