@@ -5,14 +5,17 @@ using UnityEngine.UI;
 namespace ACS_Common.GCode.View
 {
     /// <summary>
-    /// 打印机的GCodeView
+    /// 打印机的GCodeView，可指示当前打印任务运行的指令行，自动跟随打印任务进度滚动视窗
     /// </summary>
     public class PrinterGCodeView : GCodeView
     {
+        // 当前运行指令标志
         [SerializeField] private Image _currentLineIndicator;
+        // 当前运行指令进度
         [SerializeField] private Image _currentLineProgress;
 
         private PrinterMainBoard _printerMainBoard;
+        private PrinterGCodeViewScrollBar _printerGCodeViewScrollBar;
         /// <summary>
         /// 是否跟随当前打印进度滚动
         /// </summary>
@@ -44,6 +47,12 @@ namespace ACS_Common.GCode.View
             _printerMainBoard.OnStateChange += OnStateChange;
         }
 
+        protected override void Init()
+        {
+            base.Init();
+            _printerGCodeViewScrollBar = _scrollBar as PrinterGCodeViewScrollBar;
+        }
+
         protected override void Clear()
         {
             base.Clear();
@@ -54,20 +63,29 @@ namespace ACS_Common.GCode.View
             }
         }
 
+        private long _lastDeltaLine = long.MaxValue;
         private void OnPrintProgressUpdate()
         {
             const string m = nameof(OnPrintProgressUpdate);
-            // LogMethod(m);
+            LogMethod(m);
             if (null == _printerMainBoard)
             {
                 LogErr(m, "null == _printerMainBoard");
                 return;
             }
-
+            if (null != _currentLineProgress)
+            {
+                // LogInfo(m, $"set _currentLineProgress.fillAmount to {_printerMainBoard.Status.ExecutingProgress}");
+                _currentLineProgress.fillAmount = _printerMainBoard.Status.ExecutingProgress;
+            }
+            var deltaLine = _printerMainBoard.Status.ExecutingCommandLineIdx - DisplayLineIdx;
+            LogInfo(m, $"deltaLine: {deltaLine}");
+            if (deltaLine == _lastDeltaLine) return;
+            _lastDeltaLine = deltaLine;
+            var executingLineInDisplayRange = deltaLine >= 0 && deltaLine < _displayLineCnt;
+            LogInfo(m, $"executingLineInDisplayRange: {executingLineInDisplayRange}");
             if (null != _currentLineIndicator)
             {
-                var deltaLine = _printerMainBoard.Status.ExecutingCommandLineIdx - DisplayLineIdx;
-                var executingLineInDisplayRange = deltaLine >= 0 && deltaLine < _displayLineCnt;
                 if (_locking && !executingLineInDisplayRange)
                 {
                     DisplayPrintLine();
@@ -77,17 +95,13 @@ namespace ACS_Common.GCode.View
                     // 如果非跟随状态下当前执行行进入显示范围，则显示状态变为跟随
                     _locking |= executingLineInDisplayRange;
                     _currentLineIndicator.gameObject.SetActive(deltaLine >= 0 && deltaLine < _displayLineCnt);
-                    // LogInfo(m, $"deltaLine: {deltaLine}");
                     var localPos = _currentLineIndicator.transform.localPosition;
                     localPos.y = -deltaLine * _textField.fontSize;
-                    // LogInfo(m, $"localPos: {localPos}");
+                    LogInfo(m, $"localPos: {localPos}");
                     _currentLineIndicator.transform.localPosition = localPos;
+                    
+                    if (null != _printerGCodeViewScrollBar) _printerGCodeViewScrollBar.OnPrintProgressUpdate(_printerMainBoard.Status.ExecutingCommandLineIdx, deltaLine, executingLineInDisplayRange);
                 }
-            }
-            if (null != _currentLineProgress)
-            {
-                // LogInfo(m, $"set _currentLineProgress.fillAmount to {_printerMainBoard.Status.ExecutingProgress}");
-                _currentLineProgress.fillAmount = _printerMainBoard.Status.ExecutingProgress;
             }
         }
 
@@ -111,6 +125,7 @@ namespace ACS_Common.GCode.View
                     DisplayPrintLine();
                     break;
             }
+            if (null != _printerGCodeViewScrollBar) _printerGCodeViewScrollBar.OnStateChange(_printerMainBoard.Status);
         }
 
         protected override void OnStreamUpdate()
@@ -138,25 +153,26 @@ namespace ACS_Common.GCode.View
         private void DisplayPrintLine()
         {
             const string m = nameof(DisplayPrintLine);
+            LogMethod(m);
             if (null == _printerMainBoard)
             {
                 LogErr(m, "null == _printerMainBoard");
                 return;
             }
             var deltaLine = _printerMainBoard.Status.ExecutingCommandLineIdx - DisplayLineIdx;
-            // LogInfo(m, $"deltaLine: {deltaLine}");
+            // LogInfo(m, $"ExecutingCommandLineIdx: {_printerMainBoard.Status.ExecutingCommandLineIdx}, DisplayLineIdx: {DisplayLineIdx}, deltaLine: {deltaLine}");
             if (deltaLine >= 0 && deltaLine < _displayLineCnt) return;
             if (deltaLine < 0)
             {
-                var targetLineIdx = _printerMainBoard.Status.ExecutingCommandLineIdx + 1;
-                UpdateTextField(targetLineIdx);
+                var targetLineIdx = _printerMainBoard.Status.ExecutingCommandLineIdx;
                 ForceSetScrollBarPos(targetLineIdx);
+                UpdateTextField(targetLineIdx);
             }
             else
             {
                 var targetLineIdx = _printerMainBoard.Status.ExecutingCommandLineIdx - _displayLineCnt + 1;
-                UpdateTextField(targetLineIdx);
                 ForceSetScrollBarPos(targetLineIdx);
+                UpdateTextField(targetLineIdx);
             }
         }
     }

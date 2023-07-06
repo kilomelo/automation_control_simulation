@@ -15,7 +15,7 @@ namespace ACS_Common.GCode.View
     public partial class GCodeView : ViewBase, IPointerDownHandler, IPointerUpHandler, IDragHandler
     {
         [SerializeField] protected TextMeshProUGUI _textField;
-        [SerializeField] private GCodeViewScrollBar _scrollBar;
+        [SerializeField] protected GCodeViewScrollBar _scrollBar;
         
         #region color define
 
@@ -359,8 +359,8 @@ namespace ACS_Common.GCode.View
             // LogInfo(m, $"deltaY: {deltaY}, _textField.fontSize: {_textField.fontSize}");
             var deltaLine = deltaY / _textField.fontSize;
             var targetLineIdx = _dragStartDisplayLine + (long)Math.Floor(deltaLine);
-            OnScrollPos(targetLineIdx);
             ForceSetScrollBarPos(targetLineIdx);
+            OnScrollPos(targetLineIdx);
         }
         
         public void OnPointerUp(PointerEventData eventData)

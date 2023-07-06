@@ -8,7 +8,7 @@ namespace ACS_Common.GCode.View
     [RequireComponent(typeof(RectTransform))]
     public class GCodeViewScrollBar : ViewBase, IPointerDownHandler, IDragHandler, IBeginDragHandler
     {
-        [SerializeField] private RectTransform _handler;
+        [SerializeField] protected RectTransform _handler;
         public bool SnapHandler = false;
         public float MinHandlerHeight = 1f;
         public Action<float> OnPosPercentage;
@@ -22,9 +22,9 @@ namespace ACS_Common.GCode.View
             set => SetScrollIdx(value);
         }
 
-        private long _total;
-        private long _content;
-        private float _handlerHeight => null == _handler ? 0f : _handler.rect.height;
+        protected long _total;
+        protected long _content;
+        protected float _handlerHeight => null == _handler ? 0f : _handler.rect.height;
         public void SetConfig(long total, long content)
         {
             const string m = nameof(SetConfig);

@@ -249,7 +249,7 @@ namespace ACS_Common.MainBoard
                 // ExecuteCommand();
                 while (_status.ExecutingProgress < 1f)
                 {
-                    SetCommandExecuteProgress(_status.ExecutingProgress + .1f);
+                    SetCommandExecuteProgress(_status.ExecutingProgress + .25f);
                     yield return new WaitForSeconds(0.1f);
                 }
                 if (EControlSignal.Pause == _controlSignal)
