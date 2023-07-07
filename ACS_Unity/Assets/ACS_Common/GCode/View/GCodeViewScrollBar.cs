@@ -94,10 +94,12 @@ namespace ACS_Common.GCode.View
                 // LogInfo(m, $"_handler.pos: {_handler.localPosition}");
                 var rect = _rectTransform.rect;
                 var pos = _handler.localPosition;
-                pos.y = SnapHandler ?
-                    -(rect.height - _handler.rect.height) * (float)index / Math.Max(_total - _content, 1L) :
-                    -(rect.height - _handler.rect.height) * scrollPosPercentage;
-                // LogInfo(m, $"_handler.pos.y: {_handler.localPosition.y}, new y: {pos.y}");
+                var freePosY = -(rect.height - _handler.rect.height) * scrollPosPercentage;
+                LogInfo(m, $"_handler.rect.height: {_handler.rect.height}, rect.height: {rect.height}");
+                var snapedPosY = CalcLerpPos(0f, -(rect.height - _handler.rect.height), _total, index);//-(rect.height - _handler.rect.height) * (float) index /
+                                 //Math.Max(_total - _content, 1L); 
+                pos.y = SnapHandler ? snapedPosY : freePosY;
+                LogInfo(m, $"_handler.pos.y: {_handler.localPosition.y}, new y: {pos.y}");
                 _handler.localPosition = pos;
             }
             OnPosIndex?.Invoke(index);
@@ -141,6 +143,13 @@ namespace ACS_Common.GCode.View
             // LogMethod(m, $"localPosY: {localPosY}");
             var rect = _rectTransform.rect;
             return Math.Clamp(-localPosY / (rect.height - _handlerHeight), 0f, 1f);
+        }
+
+        protected float CalcLerpPos(float min, float max, long totalElementCnt, long elementIdx)
+        {
+            const string m = nameof(CalcLerpPos);
+            var p = (float)elementIdx / totalElementCnt;
+            return min + (max - min) * p;
         }
     }
 }
