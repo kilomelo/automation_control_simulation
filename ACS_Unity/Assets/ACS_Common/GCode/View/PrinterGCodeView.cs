@@ -64,10 +64,11 @@ namespace ACS_Common.GCode.View
         }
 
         private long _lastDeltaLine = long.MaxValue;
+        // 设置指示标志的位置和滚动条指示标志的位置
         private void OnPrintProgressUpdate()
         {
             const string m = nameof(OnPrintProgressUpdate);
-            LogMethod(m);
+            // LogMethod(m);
             if (null == _printerMainBoard)
             {
                 LogErr(m, "null == _printerMainBoard");
@@ -79,11 +80,11 @@ namespace ACS_Common.GCode.View
                 _currentLineProgress.fillAmount = _printerMainBoard.Status.ExecutingProgress;
             }
             var deltaLine = _printerMainBoard.Status.ExecutingCommandLineIdx - DisplayLineIdx;
-            LogInfo(m, $"deltaLine: {deltaLine}");
+            // LogInfo(m, $"deltaLine: {deltaLine}");
             if (deltaLine == _lastDeltaLine) return;
             _lastDeltaLine = deltaLine;
             var executingLineInDisplayRange = deltaLine >= 0 && deltaLine < _displayLineCnt;
-            LogInfo(m, $"executingLineInDisplayRange: {executingLineInDisplayRange}");
+            // LogInfo(m, $"executingLineInDisplayRange: {executingLineInDisplayRange}");
             if (null != _currentLineIndicator)
             {
                 if (_locking && !executingLineInDisplayRange)
@@ -97,7 +98,7 @@ namespace ACS_Common.GCode.View
                     _currentLineIndicator.gameObject.SetActive(deltaLine >= 0 && deltaLine < _displayLineCnt);
                     var localPos = _currentLineIndicator.transform.localPosition;
                     localPos.y = -deltaLine * _textField.fontSize;
-                    LogInfo(m, $"localPos: {localPos}");
+                    // LogInfo(m, $"localPos: {localPos}");
                     _currentLineIndicator.transform.localPosition = localPos;
                     
                     if (null != _printerGCodeViewScrollBar) _printerGCodeViewScrollBar.OnPrintProgressUpdate(_printerMainBoard.Status.ExecutingCommandLineIdx, deltaLine, executingLineInDisplayRange);
@@ -153,7 +154,7 @@ namespace ACS_Common.GCode.View
         private void DisplayPrintLine()
         {
             const string m = nameof(DisplayPrintLine);
-            LogMethod(m);
+            // LogMethod(m);
             if (null == _printerMainBoard)
             {
                 LogErr(m, "null == _printerMainBoard");

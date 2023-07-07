@@ -250,7 +250,7 @@ namespace ACS_Common.MainBoard
                 while (_status.ExecutingProgress < 1f)
                 {
                     SetCommandExecuteProgress(_status.ExecutingProgress + .25f);
-                    yield return new WaitForSeconds(0.1f);
+                    yield return new WaitForSeconds(0.01f);
                 }
                 if (EControlSignal.Pause == _controlSignal)
                 {
@@ -265,7 +265,7 @@ namespace ACS_Common.MainBoard
                 }
                 if (EControlSignal.Stop == _controlSignal)
                 {
-                    SetExecutingCommandLineIdx(0);
+                    SetExecutingCommandLineIdx(-1);
                     SetState(PrinterMainBoardStatus.EPrinterState.Idle);
                     yield break;
                 }
@@ -289,7 +289,7 @@ namespace ACS_Common.MainBoard
         private void SetExecutingCommandLineIdx(long idx)
         {
             const string m = nameof(SetExecutingCommandLineIdx);
-            LogMethod(m, $"idx: {idx}");
+            // LogMethod(m, $"idx: {idx}");
             // if (_status.ExecutingCommandLineIdx == idx) return;
             _status.ExecutingCommandLineIdx = idx;
             _status.ExecutingProgress = 0f;

@@ -23,6 +23,12 @@ namespace ACS_Common.GCode.View
             _currentLineIndicatorRectTrans = _currentLineIndicator.transform as RectTransform;
         }
 
+        /// <summary>
+        /// 当前任务执行行号发生变化时调用，用于更新指示标识的显示
+        /// </summary>
+        /// <param name="currentExecuteLineIdx">当前执行行号</param>
+        /// <param name="deltaLineIdx">当前执行行号与展示的第一行的插值</param>
+        /// <param name="executingLineInDisplayRange">当前执行行是否在展示范围中</param>
         public void OnPrintProgressUpdate(long currentExecuteLineIdx, long deltaLineIdx, bool executingLineInDisplayRange)
         {
             const string m = nameof(OnPrintProgressUpdate);
@@ -45,17 +51,18 @@ namespace ACS_Common.GCode.View
                 {
                     var localPos = _currentLineIndicatorRectTrans.localPosition;
                     localPos.y = currentExecuteLineIdx * (_rectTransform.sizeDelta.y - _handlerHeight) / _content;
-                    LogInfo(m, $"localPos.y: {localPos.y}");
+                    // LogInfo(m, $"localPos.y: {localPos.y}");
                     _currentLineIndicatorRectTrans.localPosition = localPos;
                 }
                 else
                 {
                     var localPos = _currentLineIndicatorRectTrans.localPosition;
-                    localPos.y = -_rectTransform.sizeDelta.y + deltaLineIdx * _rectTransform.sizeDelta.y / _content;
+                    localPos.y = -_rectTransform.rect.height;// + deltaLineIdx * _rectTransform.sizeDelta.y / _content;
+                    LogInfo(m, $"localPos.y: {localPos.y}, _rectTransform.rect: {_rectTransform.rect}");
                     _currentLineIndicatorRectTrans.localPosition = localPos;
                 }
                 var size = _currentLineIndicatorRectTrans.sizeDelta;
-                size.y = Math.Max(1f, (_rectTransform.sizeDelta.y - _handlerHeight) / _total);
+                size.y = Math.Max(2f, (_rectTransform.sizeDelta.y - _handlerHeight) / _total);
                 _currentLineIndicatorRectTrans.sizeDelta = size;
             }
         }

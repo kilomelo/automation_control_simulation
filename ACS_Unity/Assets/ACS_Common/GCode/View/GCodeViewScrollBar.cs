@@ -89,18 +89,18 @@ namespace ACS_Common.GCode.View
             OnPosPercentage?.Invoke(scrollPosPercentage);
             var index = Math.Clamp((long)((_total - _content + 1) * scrollPosPercentage), 0L, Math.Max(_total - _content, 1L));
             // LogInfo(m, $"index: {index}");
-            OnPosIndex?.Invoke(index);
             if (null != _handler)
             {
                 // LogInfo(m, $"_handler.pos: {_handler.localPosition}");
                 var rect = _rectTransform.rect;
                 var pos = _handler.localPosition;
                 pos.y = SnapHandler ?
-                        -(rect.height - _handler.rect.height) * (float)index / Math.Max(_total - _content, 1L) :
-                        -(rect.height - _handler.rect.height) * scrollPosPercentage;
+                    -(rect.height - _handler.rect.height) * (float)index / Math.Max(_total - _content, 1L) :
+                    -(rect.height - _handler.rect.height) * scrollPosPercentage;
                 // LogInfo(m, $"_handler.pos.y: {_handler.localPosition.y}, new y: {pos.y}");
                 _handler.localPosition = pos;
             }
+            OnPosIndex?.Invoke(index);
         }
 
         private void SetScrollIdx(long idx)
