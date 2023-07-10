@@ -51,6 +51,7 @@ namespace ACS_Common.GCode.View
         {
             base.Init();
             _printerGCodeViewScrollBar = _scrollBar as PrinterGCodeViewScrollBar;
+            if (_printerGCodeViewScrollBar != null) _printerGCodeViewScrollBar.JumpBtnOnClick += DisplayPrintLine;
         }
 
         protected override void Clear()

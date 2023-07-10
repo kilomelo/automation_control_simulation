@@ -343,7 +343,7 @@ namespace ACS_Common.GCode.View
             const string m = nameof(OnPointerDown);
             // LogMethod(m, $"eventData: {eventData}");
             if (null == _textField) return;
-            if (!_stream.IndexBuilt) return;
+            if (_stream is not { IndexBuilt: true }) return;
             _dragPointY = EventPosY2LocalPosY(eventData.position.y);
             _dragStartDisplayLine = _displayStartLineIdx;
         }
@@ -353,7 +353,7 @@ namespace ACS_Common.GCode.View
             const string m = nameof(OnDrag);
             // LogMethod(m, $"eventData: {eventData}");
             if (null == _textField) return;
-            if (!_stream.IndexBuilt) return;
+            if (_stream is not {IndexBuilt: true}) return;
             if (_dragPointY > 0f) return;
             var deltaY = EventPosY2LocalPosY(eventData.position.y) - _dragPointY;
             // LogInfo(m, $"deltaY: {deltaY}, _textField.fontSize: {_textField.fontSize}");

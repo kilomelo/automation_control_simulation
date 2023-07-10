@@ -9,8 +9,7 @@ namespace ACS_Common.GCode.View
     public class GCodeViewScrollBar : ViewBase, IPointerDownHandler, IDragHandler, IBeginDragHandler
     {
         [SerializeField] protected RectTransform _handler;
-        public bool SnapHandler = false;
-        public float MinHandlerHeight = 1f;
+        public float MinHandlerHeightMulti = 2f;
         public Action<float> OnPosPercentage;
         public Action<long> OnPosIndex;
 
@@ -35,7 +34,7 @@ namespace ACS_Common.GCode.View
             {
                 var handlerSize = _handler.sizeDelta;
                 var rect = _rectTransform.rect;
-                var newSize = new Vector2(handlerSize.x, Math.Max(rect.height * ((float)_content / _total), MinHandlerHeight));
+                var newSize = new Vector2(handlerSize.x, Math.Max(rect.height * ((float)_content / _total), content * MinHandlerHeightMulti));
                 // LogInfo(m, $"new size: {newSize}, (float)_content / _total: {(float)_content / _total}, rect.height: {rect.height}");
                 _handler.sizeDelta = newSize;
                 var localPos = _handler.localPosition;
@@ -88,20 +87,7 @@ namespace ACS_Common.GCode.View
             // LogMethod(m, $"scrollPosPercentage: {scrollPosPercentage}, _total: {_total}, _content: {_content}");
             OnPosPercentage?.Invoke(scrollPosPercentage);
             var index = Math.Clamp((long)((_total - _content + 1) * scrollPosPercentage), 0L, Math.Max(_total - _content, 1L));
-            // LogInfo(m, $"index: {index}");
-            if (null != _handler)
-            {
-                // LogInfo(m, $"_handler.pos: {_handler.localPosition}");
-                var rect = _rectTransform.rect;
-                var pos = _handler.localPosition;
-                var freePosY = -(rect.height - _handler.rect.height) * scrollPosPercentage;
-                LogInfo(m, $"_handler.rect.height: {_handler.rect.height}, rect.height: {rect.height}");
-                var snapedPosY = CalcLerpPos(0f, -(rect.height - _handler.rect.height), _total, index);//-(rect.height - _handler.rect.height) * (float) index /
-                                 //Math.Max(_total - _content, 1L); 
-                pos.y = SnapHandler ? snapedPosY : freePosY;
-                LogInfo(m, $"_handler.pos.y: {_handler.localPosition.y}, new y: {pos.y}");
-                _handler.localPosition = pos;
-            }
+            FitBarPos(_handler, _rectTransform, Math.Max(_total - _content, 1L), index);
             OnPosIndex?.Invoke(index);
         }
 
@@ -109,17 +95,7 @@ namespace ACS_Common.GCode.View
         {
             const string m = nameof(SetScrollIdx);
             // LogMethod(m, $"idx: {idx}");
-            idx = Math.Clamp(idx, 0L, Math.Max(_total - _content, 1L));
-            var percent = (float)idx / Math.Max(1L, _total - _content);
-            // LogInfo(m, $"idx: {idx}, percent: {percent}");
-            if (null != _handler)
-            {
-                var rect = _rectTransform.rect;
-                var pos = _handler.localPosition;
-                pos.y = -(rect.height - _handler.rect.height) * percent;
-                // LogInfo(m, $"_handler.pos.y: {_handler.localPosition.y}, new y: {pos.y}");
-                _handler.localPosition = pos;
-            }
+            FitBarPos(_handler, _rectTransform, Math.Max(_total - _content, 1L), idx);
         }
 
         private bool PointInHandler(Vector2 point)
@@ -145,9 +121,22 @@ namespace ACS_Common.GCode.View
             return Math.Clamp(-localPosY / (rect.height - _handlerHeight), 0f, 1f);
         }
 
+        protected void FitBarPos(RectTransform bar, RectTransform container, long totalElementCnt, long elementIdx)
+        {
+            const string m = nameof(FitBarPos);
+            // LogMethod(m, $"bar: {bar}, container: {bar}, totalElementCnt: {totalElementCnt}, elementIdx: {elementIdx}");
+            if (null == bar || null == container || totalElementCnt <= 0) return;
+            elementIdx = Math.Clamp(elementIdx, 0, totalElementCnt);
+            var barHeight = bar.rect.height;
+            // LogInfo(m, $"elementIdx: {elementIdx}, barHeight: {barHeight}");
+            var localPos = bar.localPosition;
+            localPos.y = CalcLerpPos(0f, -(container.rect.height - barHeight), totalElementCnt, elementIdx);
+            bar.localPosition = localPos;
+        }
         protected float CalcLerpPos(float min, float max, long totalElementCnt, long elementIdx)
         {
             const string m = nameof(CalcLerpPos);
+            // LogMethod(m, $"min: {min}, max: {max}, totalElementCnt: {totalElementCnt}, elementIdx: {elementIdx}");
             var p = (float)elementIdx / totalElementCnt;
             return min + (max - min) * p;
         }

@@ -1,5 +1,6 @@
 using System;
 using ACS_Common.MainBoard;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -12,7 +13,11 @@ namespace ACS_Common.GCode.View
     {
         // 当前运行指令标志
         [SerializeField] private Image _currentLineIndicator;
+        // 跳转到当前运行行按钮
+        [SerializeField] private Button _currentLineJumpBtn;
 
+        public Action JumpBtnOnClick;
+        private TextMeshProUGUI _currentLineJumpBtnTxt;
         private RectTransform _currentLineIndicatorRectTrans;
 
         protected override void Init()
@@ -21,6 +26,15 @@ namespace ACS_Common.GCode.View
             base.Init();
             if (null == _currentLineIndicator) LogErr(m, "null == _currentLineIndicator");
             _currentLineIndicatorRectTrans = _currentLineIndicator.transform as RectTransform;
+            if (null != _currentLineJumpBtn)
+            {
+                _currentLineJumpBtn.onClick.AddListener(() =>
+                {
+                    JumpBtnOnClick?.Invoke();
+                });
+                _currentLineJumpBtnTxt = _currentLineJumpBtn.GetComponentInChildren<TextMeshProUGUI>(true);
+                if (null == _currentLineJumpBtnTxt) LogErr(m, "_currentLineJumpBtn has no TextMeshProUGUI component");
+            }
         }
 
         /// <summary>
@@ -32,38 +46,41 @@ namespace ACS_Common.GCode.View
         public void OnPrintProgressUpdate(long currentExecuteLineIdx, long deltaLineIdx, bool executingLineInDisplayRange)
         {
             const string m = nameof(OnPrintProgressUpdate);
-            LogMethod(m, $"currentExecuteLineIdx: {currentExecuteLineIdx}, deltaLineIdx: {deltaLineIdx}, executingLineInDisplayRange: {executingLineInDisplayRange}");
+            // LogMethod(m, $"currentExecuteLineIdx: {currentExecuteLineIdx}, deltaLineIdx: {deltaLineIdx}, executingLineInDisplayRange: {executingLineInDisplayRange}");
             if (null == _rectTransform) return;
             if (null == _currentLineIndicator) return;
             if (null == _handler) return;
+            if (null != _currentLineJumpBtn) _currentLineJumpBtn.gameObject.SetActive(!executingLineInDisplayRange);
+            var localPos = _currentLineIndicatorRectTrans.localPosition;
             if (executingLineInDisplayRange)
             {
-                var localPos = _currentLineIndicatorRectTrans.localPosition;
-                localPos.y = _handler.transform.localPosition.y - deltaLineIdx * _handlerHeight / _content;
-                _currentLineIndicatorRectTrans.localPosition = localPos;
                 var size = _currentLineIndicatorRectTrans.sizeDelta;
                 size.y = Math.Max(1f, _handlerHeight / _content);
                 _currentLineIndicatorRectTrans.sizeDelta = size;
+                localPos.y = CalcLerpPos(_handler.localPosition.y,
+                    _handler.localPosition.y - (_handler.rect.height - size.y),
+                    _content - 1, deltaLineIdx);
             }
             else
             {
-                if (deltaLineIdx < 0)
-                {
-                    var localPos = _currentLineIndicatorRectTrans.localPosition;
-                    localPos.y = currentExecuteLineIdx * (_rectTransform.sizeDelta.y - _handlerHeight) / _content;
-                    // LogInfo(m, $"localPos.y: {localPos.y}");
-                    _currentLineIndicatorRectTrans.localPosition = localPos;
-                }
-                else
-                {
-                    var localPos = _currentLineIndicatorRectTrans.localPosition;
-                    localPos.y = -_rectTransform.rect.height;// + deltaLineIdx * _rectTransform.sizeDelta.y / _content;
-                    LogInfo(m, $"localPos.y: {localPos.y}, _rectTransform.rect: {_rectTransform.rect}");
-                    _currentLineIndicatorRectTrans.localPosition = localPos;
-                }
                 var size = _currentLineIndicatorRectTrans.sizeDelta;
-                size.y = Math.Max(2f, (_rectTransform.sizeDelta.y - _handlerHeight) / _total);
+                // LogInfo(m, $"size: {size}");
+                var realSize = (_rectTransform.rect.height - _handlerHeight) / (_total - _content);
+                size.y = Math.Max(1f, realSize);
+                // LogInfo(m, $"_rectTransform.rect.height: {_rectTransform.rect.height}, _handlerHeight: {_handlerHeight}, _rectTransform.sizeDelta.y - _handlerHeight: {_rectTransform.rect.height - _handlerHeight}, _total - _content: {_total - _content}, size.y: {size.y}");
                 _currentLineIndicatorRectTrans.sizeDelta = size;
+                localPos.y = deltaLineIdx < 0 ? -currentExecuteLineIdx * realSize :
+                    -(_rectTransform.rect.height - (_total - currentExecuteLineIdx) * realSize);
+                if (null != _currentLineJumpBtnTxt) _currentLineJumpBtnTxt.text = currentExecuteLineIdx.ToString();
+            }
+            _currentLineIndicatorRectTrans.localPosition = localPos;
+            if (null != _currentLineJumpBtn)
+            {
+                var btnPos = _currentLineJumpBtn.transform.localPosition;
+                btnPos.y = localPos.y;
+                var btnHeight = 24f;
+                if (-btnPos.y > _rectTransform.rect.height - btnHeight) btnPos.y = -(_rectTransform.rect.height - btnHeight);
+                _currentLineJumpBtn.transform.localPosition = btnPos;
             }
         }
 
@@ -73,6 +90,7 @@ namespace ACS_Common.GCode.View
             {
                 case PrinterMainBoard.PrinterMainBoardStatus.EPrinterState.Idle:
                     if (null != _currentLineIndicator) _currentLineIndicator.gameObject.SetActive(false);
+                    if (null != _currentLineJumpBtn) _currentLineJumpBtn.gameObject.SetActive(false);
                     break;
                 case PrinterMainBoard.PrinterMainBoardStatus.EPrinterState.Printing:
                     if (null != _currentLineIndicator) _currentLineIndicator.gameObject.SetActive(true);
