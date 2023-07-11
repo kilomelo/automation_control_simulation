@@ -86,13 +86,13 @@ namespace ACS_Common.GCode.View
 
         public void OnStateChange(PrinterMainBoard.PrinterMainBoardStatus status)
         {
-            switch (status.State)
+            switch (status.CommandState)
             {
-                case PrinterMainBoard.PrinterMainBoardStatus.EPrinterState.Idle:
+                case PrinterMainBoard.PrinterMainBoardStatus.ECommandState.Idle:
                     if (null != _currentLineIndicator) _currentLineIndicator.gameObject.SetActive(false);
                     if (null != _currentLineJumpBtn) _currentLineJumpBtn.gameObject.SetActive(false);
                     break;
-                case PrinterMainBoard.PrinterMainBoardStatus.EPrinterState.Printing:
+                case PrinterMainBoard.PrinterMainBoardStatus.ECommandState.Printing:
                     if (null != _currentLineIndicator) _currentLineIndicator.gameObject.SetActive(true);
                     break;
             }

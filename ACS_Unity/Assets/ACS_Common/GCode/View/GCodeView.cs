@@ -41,12 +41,12 @@ namespace ACS_Common.GCode.View
         /// </summary>
         protected int _displayLineCnt = 10;
 
-        private StringBuilder _sb = new StringBuilder();
-        private long _displayStartLineIdx = -1L;
+        protected StringBuilder _sb = new StringBuilder();
+        protected long _displayStartLineIdx = -1L;
 
         public MonoBehaviour GCommandStreamHolderComp;
         protected IGCommandStreamHolder _streamHolder;
-        private GCommandStream _stream => _streamHolder?.Stream;
+        protected GCommandStream _stream => _streamHolder?.Stream;
         // 上一次updateText时读取的最后位置
         private long _lastReadTextPosition;
         protected virtual long DisplayLineIdx
@@ -120,7 +120,7 @@ namespace ACS_Common.GCode.View
             if (null != streamHolder) SetStreamHolder(GCommandStreamHolderComp as IGCommandStreamHolder);
         }
 
-        protected void SetStreamHolder(IGCommandStreamHolder streamHolder)
+        protected virtual void SetStreamHolder(IGCommandStreamHolder streamHolder)
         {
             const string m = nameof(SetStreamHolder);
             LogMethod(m, $"streamHolder: {streamHolder}");

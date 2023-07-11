@@ -1,4 +1,5 @@
 using ACS_Common.MainBoard;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -13,6 +14,13 @@ namespace ACS_Common.GCode.View
         [SerializeField] private Image _currentLineIndicator;
         // 当前运行指令进度
         [SerializeField] private Image _currentLineProgress;
+        // 没行运行时间信息
+        [SerializeField] protected TextMeshProUGUI _executeTimeTextField;
+
+        private static readonly string[] ColorExecuteTimeText = { "6FDB50", "B8DB50", "DBD750", "DBA450", "DB6D50" };
+        private static readonly long[] ColorExecuteTimeThreshold = { 125, 250, 500, 1000, long.MaxValue };
+        // private const string ColorLineIdx = "B0A597";
+        // private const string ColorInvalid = "FF6666";
 
         private PrinterMainBoard _printerMainBoard;
         private PrinterGCodeViewScrollBar _printerGCodeViewScrollBar;
@@ -102,9 +110,11 @@ namespace ACS_Common.GCode.View
                     // LogInfo(m, $"localPos: {localPos}");
                     _currentLineIndicator.transform.localPosition = localPos;
                     
-                    if (null != _printerGCodeViewScrollBar) _printerGCodeViewScrollBar.OnPrintProgressUpdate(_printerMainBoard.Status.ExecutingCommandLineIdx, deltaLine, executingLineInDisplayRange);
+                    if (null != _printerGCodeViewScrollBar) 
+                        _printerGCodeViewScrollBar.OnPrintProgressUpdate(_printerMainBoard.Status.ExecutingCommandLineIdx, deltaLine, executingLineInDisplayRange);
                 }
             }
+            UpdateExecuteTimeText();
         }
 
         private void OnStateChange()
@@ -117,17 +127,18 @@ namespace ACS_Common.GCode.View
                 return;
             }
             // LogInfo(m, $"_printerMainBoard.Status.State: {_printerMainBoard.Status.State}");
-            switch (_printerMainBoard.Status.State)
+            switch (_printerMainBoard.Status.CommandState)
             {
-                case PrinterMainBoard.PrinterMainBoardStatus.EPrinterState.Idle:
+                case PrinterMainBoard.PrinterMainBoardStatus.ECommandState.Idle:
                     if (null != _currentLineIndicator) _currentLineIndicator.gameObject.SetActive(false);
                     break;
-                case PrinterMainBoard.PrinterMainBoardStatus.EPrinterState.Printing:
+                case PrinterMainBoard.PrinterMainBoardStatus.ECommandState.Printing:
                     _locking = true;
                     DisplayPrintLine();
                     break;
             }
             if (null != _printerGCodeViewScrollBar) _printerGCodeViewScrollBar.OnStateChange(_printerMainBoard.Status);
+            UpdateExecuteTimeText();
         }
 
         protected override void OnStreamUpdate()
@@ -147,11 +158,20 @@ namespace ACS_Common.GCode.View
             base.UpdateTextField(startLineIdx);
             // LogInfo(m, $"update: {update}");
             if (update && null != _printerMainBoard &&
-                _printerMainBoard.Status.State is PrinterMainBoard.PrinterMainBoardStatus.EPrinterState.Printing or
-                    PrinterMainBoard.PrinterMainBoardStatus.EPrinterState.Pause)
+                _printerMainBoard.Status.CommandState is PrinterMainBoard.PrinterMainBoardStatus.ECommandState.Printing or
+                    PrinterMainBoard.PrinterMainBoardStatus.ECommandState.Pause)
                 OnPrintProgressUpdate();
         }
 
+        protected override void SetStreamHolder(IGCommandStreamHolder streamHolder)
+        {
+            base.SetStreamHolder(streamHolder);
+            if (null != _executeTimeTextField) _executeTimeTextField.text = string.Empty;
+        }
+
+        /// <summary>
+        /// 使当前执行命令展示在视野中
+        /// </summary>
         private void DisplayPrintLine()
         {
             const string m = nameof(DisplayPrintLine);
@@ -175,6 +195,35 @@ namespace ACS_Common.GCode.View
                 var targetLineIdx = _printerMainBoard.Status.ExecutingCommandLineIdx - _displayLineCnt + 1;
                 ForceSetScrollBarPos(targetLineIdx);
                 UpdateTextField(targetLineIdx);
+            }
+        }
+
+        /// <summary>
+        /// 刷新执行时间的显示
+        /// </summary>
+        private void UpdateExecuteTimeText()
+        {
+            // 更新执行时间
+            if (null != _stream && null != _executeTimeTextField)
+            {
+                _sb.Clear();
+                var i = 0;
+                var realDisplayLineCnt = Mathf.Clamp(_displayLineCnt, 1, 9999);
+                while (i++ < realDisplayLineCnt && (i + _displayStartLineIdx - 1) <= _printerMainBoard.Status.ExecutingCommandLineIdx)
+                {
+                    var cachedCommand = _stream.GetCachedCommand(i + _displayStartLineIdx - 1);
+                    if (i + _displayStartLineIdx - 1 == _printerMainBoard.Status.ExecutingCommandLineIdx &&
+                        _printerMainBoard.Status.CommandState !=
+                        PrinterMainBoard.PrinterMainBoardStatus.ECommandState.Pause) break;
+                    if (cachedCommand is { ExecuteTimeMilliSec: > 0 })
+                    {
+                        var level = 0;
+                        while (ColorExecuteTimeThreshold[level] < cachedCommand.ExecuteTimeMilliSec) level++;
+                        _sb.Append($"<color=#{ColorExecuteTimeText[level]}>{cachedCommand.ExecuteTimeMilliSec}</color>");
+                    }
+                    _sb.Append('\n');
+                }
+                _executeTimeTextField.text = _sb.ToString();
             }
         }
     }

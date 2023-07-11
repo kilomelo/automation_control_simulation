@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Diagnostics;
 using ACS_Common.Base;
 using ACS_Common.Driver;
 using ACS_Common.GCode;
@@ -11,14 +12,14 @@ namespace ACS_Common.MainBoard
     /// <summary>
     /// 3d打印主板
     /// </summary>
-    public class PrinterMainBoard : ACS_Behaviour, IGCommandStreamHolder
+    public partial class PrinterMainBoard : ACS_Behaviour, IGCommandStreamHolder
     {
         /// <summary>
         /// 打印主板的状态
         /// </summary>
         public struct PrinterMainBoardStatus
         {
-            public enum EPrinterState : SByte
+            public enum ECommandState : SByte
             {
                 Shutdown = 0,
                 SelfTest = 1,
@@ -29,17 +30,30 @@ namespace ACS_Common.MainBoard
                 PrintFailed = 6,
             }
             // 当前状态
-            public EPrinterState State;
+            public ECommandState CommandState;
             // 正在执行的行数
             public long ExecutingCommandLineIdx;
             // 命令流总行数
             public long CommandStreamTotalLine;
             // 正在执行的命令进度
             public float ExecutingProgress;
+            // 已执行时间
+            public long ExecuteTimeMilliseconds;
 
             public override string ToString()
             {
-                return $"State: [{State}] | Line: [{ExecutingCommandLineIdx + 1} / {CommandStreamTotalLine}] | Progress: [{StringUtils.ProgressBar(ExecutingProgress)}]";
+                var millisec = ExecuteTimeMilliseconds;
+                var timeHour = millisec / (1000 * 60 * 60);
+                millisec -= timeHour * (1000 * 60 * 60);
+                var timeMin = millisec / (1000 * 60);
+                millisec -= timeMin * (1000 * 60);
+                var timeSec = millisec / 1000;
+                millisec -= timeSec * 1000;
+                var result = $"[{CommandState}] | [{ExecutingCommandLineIdx + 1}/{CommandStreamTotalLine} {StringUtils.ProgressBar(ExecutingProgress)}]";
+                if (timeHour > 0) return $"{result} | Time: [{timeHour} h {timeMin} m {timeSec} s {millisec} ms]";
+                if (timeMin > 0) return $"{result} | Time: [{timeMin} m {timeSec} s {millisec} ms]";
+                if (timeSec > 0) return $"{result} | Time: [{timeSec} s {millisec} ms]";
+                return $"{result} | Time: [{millisec} ms]";
             }
         }
         
@@ -66,6 +80,12 @@ namespace ACS_Common.MainBoard
 
         private EControlSignal _controlSignal;
 
+        private Coroutine _printLoop;
+        private Coroutine _runCommand;
+        private Coroutine _startup;
+        
+        Stopwatch _sw = new System.Diagnostics.Stopwatch();
+
         /// <summary>
         /// 发送GCode
         /// </summary>
@@ -85,7 +105,7 @@ namespace ACS_Common.MainBoard
         {
             const string m = nameof(LoadGCodeFile);
             LogMethod(m, $"gCodeFilePath: {gCodeFilePath}");
-            if (_status.State != PrinterMainBoardStatus.EPrinterState.Idle)
+            if (_status.CommandState != PrinterMainBoardStatus.ECommandState.Idle)
             {
                 LogErr(m, $"state is not Idle");
                 return;
@@ -97,6 +117,7 @@ namespace ACS_Common.MainBoard
             }
             Stream?.Dispose();
             Stream = new GCommandStream(gCodeFilePath);
+            Stream.CacheCapacity = 500;
             OnStreamUpdate?.Invoke();
         }
 
@@ -107,12 +128,13 @@ namespace ACS_Common.MainBoard
         {
             const string m = nameof(Execute);
             LogMethod(m);
-            if (_status.State != PrinterMainBoardStatus.EPrinterState.Idle)
+            if (_status.CommandState != PrinterMainBoardStatus.ECommandState.Idle)
             {
                 LogErr(m, $"state is not Idle");
                 return;
             }
-            StartCoroutine(Printing());
+            _printLoop = StartCoroutine(PrintLoop());
+            // DisplayTimerProperties();
         }
 
         /// <summary>
@@ -122,7 +144,7 @@ namespace ACS_Common.MainBoard
         {
             const string m = nameof(Pause);
             LogMethod(m);
-            if (_status.State != PrinterMainBoardStatus.EPrinterState.Printing)
+            if (_status.CommandState != PrinterMainBoardStatus.ECommandState.Printing)
             {
                 LogErr(m, $"state is not Printing");
                 return;
@@ -142,7 +164,7 @@ namespace ACS_Common.MainBoard
         {
             const string m = nameof(Continue);
             LogMethod(m);
-            if (_status.State != PrinterMainBoardStatus.EPrinterState.Pause)
+            if (_status.CommandState != PrinterMainBoardStatus.ECommandState.Pause)
             {
                 LogErr(m, $"state is not Pause");
                 return;
@@ -162,7 +184,7 @@ namespace ACS_Common.MainBoard
         {
             const string m = nameof(Stop);
             LogMethod(m);
-            if (_status.State != PrinterMainBoardStatus.EPrinterState.Printing && _status.State != PrinterMainBoardStatus.EPrinterState.Pause)
+            if (_status.CommandState != PrinterMainBoardStatus.ECommandState.Printing && _status.CommandState != PrinterMainBoardStatus.ECommandState.Pause)
             {
                 LogErr(m, $"state is not Printing");
                 return;
@@ -177,14 +199,16 @@ namespace ACS_Common.MainBoard
         private void ExecuteCommand(GCommand command)
         {
             const string m = nameof(ExecuteCommand);
-            LogMethod(m, $"command: {command}");
+            // LogMethod(m, $"command: {command}");
+            _runCommand = StartCoroutine(RunGCommand(command));
         }
 
         private void Start()
         {
             const string m = nameof(Start);
             LogMethod(m);
-            StartCoroutine(Startup());
+            _startup = StartCoroutine(Startup());
+            LogInfo(m, $"Stopwatch.IsHighResolution: {Stopwatch.IsHighResolution}, Stopwatch.Frequency: {Stopwatch.Frequency}");
         }
 
         protected override void Clear()
@@ -198,7 +222,7 @@ namespace ACS_Common.MainBoard
             const string m = nameof(Startup);
             LogMethod(m);
             yield return SelfTest();
-            SetState(PrinterMainBoardStatus.EPrinterState.Idle);
+            SetState(PrinterMainBoardStatus.ECommandState.Idle);
         }
 
         /// <summary>
@@ -209,19 +233,19 @@ namespace ACS_Common.MainBoard
         {
             const string m = nameof(SelfTest);
             LogMethod(m);
-            SetState(PrinterMainBoardStatus.EPrinterState.SelfTest);
+            SetState(PrinterMainBoardStatus.ECommandState.SelfTest);
             yield return new WaitForSeconds(1f);
         }
 
-        private IEnumerator Printing()
+        private IEnumerator PrintLoop()
         {
-            const string m = nameof(Printing);
+            const string m = nameof(PrintLoop);
             LogMethod(m);
-            SetState(PrinterMainBoardStatus.EPrinterState.Waiting);
+            SetState(PrinterMainBoardStatus.ECommandState.Waiting);
             if (null == Stream)
             {
                 LogErr(m, $"null == Stream");
-                SetState(PrinterMainBoardStatus.EPrinterState.PrintFailed);
+                SetState(PrinterMainBoardStatus.ECommandState.PrintFailed);
                 yield break;
             }
 
@@ -232,56 +256,65 @@ namespace ACS_Common.MainBoard
             if (null == Stream)
             {
                 LogErr(m, $"null == Stream");
-                SetState(PrinterMainBoardStatus.EPrinterState.PrintFailed);
+                SetState(PrinterMainBoardStatus.ECommandState.PrintFailed);
                 yield break;
             }
-            SetState(PrinterMainBoardStatus.EPrinterState.Printing);
+            SetState(PrinterMainBoardStatus.ECommandState.Printing);
             SetExecutingCommandLineIdx(0);
             _status.CommandStreamTotalLine = Stream.TotalLines;
+            var iteral = 0;
+            _sw.Reset();
+            _lastCommandFinishTimeStamp = 0;
             while (_status.ExecutingCommandLineIdx < _status.CommandStreamTotalLine)
             {
+                var nextCommand = Stream.GetCommand(_status.ExecutingCommandLineIdx + iteral);
+                while (nextCommand.CommandType is Def.EGCommandType.Invalid or Def.EGCommandType.None)
+                {
+                    iteral++;
+                    nextCommand = Stream.GetCommand(_status.ExecutingCommandLineIdx + iteral);
+                }
+                SetExecutingCommandLineIdx(_status.ExecutingCommandLineIdx + iteral);
+                iteral = 1;
+                ExecuteCommand(nextCommand);
+                while (_status.ExecutingProgress < 1f)
+                {
+                    yield return 0;
+                }
                 if (null == Stream)
                 {
                     LogErr(m, $"null == Stream");
-                    SetState(PrinterMainBoardStatus.EPrinterState.PrintFailed);
+                    SetState(PrinterMainBoardStatus.ECommandState.PrintFailed);
                     yield break;
-                }
-                // ExecuteCommand();
-                while (_status.ExecutingProgress < 1f)
-                {
-                    SetCommandExecuteProgress(_status.ExecutingProgress + .25f);
-                    yield return new WaitForSeconds(0.01f);
                 }
                 if (EControlSignal.Pause == _controlSignal)
                 {
                     _controlSignal = EControlSignal.None;
-                    SetState(PrinterMainBoardStatus.EPrinterState.Pause);
+                    SetState(PrinterMainBoardStatus.ECommandState.Pause);
                     while (EControlSignal.None == _controlSignal) yield return 0;
                     if (EControlSignal.Continue == _controlSignal)
                     {
                         _controlSignal = EControlSignal.None;
-                        SetState(PrinterMainBoardStatus.EPrinterState.Printing);
+                        SetState(PrinterMainBoardStatus.ECommandState.Printing);
                     }
                 }
                 if (EControlSignal.Stop == _controlSignal)
                 {
                     SetExecutingCommandLineIdx(-1);
-                    SetState(PrinterMainBoardStatus.EPrinterState.Idle);
+                    SetState(PrinterMainBoardStatus.ECommandState.Idle);
                     yield break;
                 }
                 
                 // yield return new WaitForSeconds(1f);
-                SetExecutingCommandLineIdx(_status.ExecutingCommandLineIdx + 1);
             }
 
-            SetState(PrinterMainBoardStatus.EPrinterState.Idle);
+            SetState(PrinterMainBoardStatus.ECommandState.Idle);
             LogInfo(m, "print task done");
         }
 
-        private void SetState(PrinterMainBoardStatus.EPrinterState state)
+        private void SetState(PrinterMainBoardStatus.ECommandState state)
         {
-            if (_status.State == state) return;
-            _status.State = state;
+            if (_status.CommandState == state) return;
+            _status.CommandState = state;
             _controlSignal = EControlSignal.None;
             OnStateChange?.Invoke();
         }
@@ -290,7 +323,7 @@ namespace ACS_Common.MainBoard
         {
             const string m = nameof(SetExecutingCommandLineIdx);
             // LogMethod(m, $"idx: {idx}");
-            // if (_status.ExecutingCommandLineIdx == idx) return;
+            if (_status.ExecutingCommandLineIdx == idx) return;
             _status.ExecutingCommandLineIdx = idx;
             _status.ExecutingProgress = 0f;
             OnPrintProgressUpdate?.Invoke();

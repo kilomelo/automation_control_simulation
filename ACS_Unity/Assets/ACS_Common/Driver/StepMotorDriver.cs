@@ -23,10 +23,11 @@ namespace ACS_Common.Driver
         /// </summary>
         public override void SendPulse(int cnt, bool reverse)
         {
-            LogInfo("todo method name", $"SendPulse, cnt: {cnt}, reverse: {reverse}");
+            const string m = nameof(SendPulse);
+            LogInfo(m, $"cnt: {cnt}, reverse: {reverse}");
             if (null == _stepMotor)
             {
-                LogErr("todo method name", $"_stepMotor is null");
+                LogErr(m, $"_stepMotor is null");
                 return;
             }
             _stepMotor.Drive(cnt, reverse, _subDiv);
@@ -34,17 +35,18 @@ namespace ACS_Common.Driver
 
         protected override void Init()
         {
+            const string m = nameof(Init);
             base.Init();
-            LogInfo("todo method name", $"Init, _stepMotorBehaviour: {_stepMotorBehaviour}");
+            LogInfo(m, $"_stepMotorBehaviour: {_stepMotorBehaviour}");
             if (null == _stepMotorBehaviour)
             {
-                LogWarn("todo method name", $"_stepMotorBehaviour is null");
+                LogWarn(m, $"_stepMotorBehaviour is null");
                 return;
             }
             _stepMotor = _stepMotorBehaviour as IStepMotor;
             if (null == _stepMotor)
             {
-                LogErr("todo method name", $"_stepMotorBehaviour is not stepMotor");
+                LogErr(m, $"_stepMotorBehaviour is not stepMotor");
                 return;
             }
         }

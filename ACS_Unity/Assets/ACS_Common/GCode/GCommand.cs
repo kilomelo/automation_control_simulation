@@ -66,7 +66,15 @@ namespace ACS_Common.GCode
         /// 原始字符串
         /// </summary>
         public string RawStr { get; private set; }
-
+        /// <summary>
+        /// 在命令流中的序号
+        /// </summary>
+        public long Index { get; set; }
+        /// <summary>
+        /// 执行时间（毫秒）
+        /// 这是一个缓存值，不一定能获取到
+        /// </summary>
+        public long ExecuteTimeMilliSec { get; set; }
         /// <summary>
         /// 从字符串构造G命令
         /// </summary>
@@ -224,10 +232,11 @@ namespace ACS_Common.GCode
     /// </summary>
     public class GCommandStream : TextFileStream, IEnumerable<GCommand>
     {
+        private const int DefaultCacheCapacity = 200;
         /// <summary>
         /// 缓存大小
         /// </summary>
-        private int _cacheCapacity = 200;
+        public int CacheCapacity { get; set; }
         /// <summary>
         /// 命令缓存字典，key为行号
         /// </summary>
@@ -245,6 +254,7 @@ namespace ACS_Common.GCode
         {
             const string m = nameof(GCommandStream);
             LogInfoStatic(m, m, $"textFilePath: {textFilePath}");
+            CacheCapacity = DefaultCacheCapacity;
         }
         
         private void Cache(long lineIdx, GCommand command, bool checkCapacity = false)
@@ -264,11 +274,32 @@ namespace ACS_Common.GCode
         {
             const string m = nameof(PreserveCacheCapacity);
             // LogMethod(m);
-            while (_commandCacheQueue.Count > _cacheCapacity)
+            while (_commandCacheQueue.Count > CacheCapacity)
             {
                 var removeCacheLineIdx = _commandCacheQueue.Dequeue();
                 _commandCache.Remove(removeCacheLineIdx);
             }
+        }
+
+        /// <summary>
+        /// 获取任意一条指令
+        /// </summary>
+        /// <param name="commandLineIdx"></param>
+        /// <returns></returns>
+        public GCommand GetCommand(long commandLineIdx)
+        {
+            using var itr = GetEnumerator(commandLineIdx);
+            return itr.MoveNext() ? itr.Current : null;
+        }
+
+        /// <summary>
+        /// 获取一条已缓存指令，如果未缓存过或缓存过期则返回空
+        /// </summary>
+        /// <param name="commandLineIdx"></param>
+        /// <returns></returns>
+        public GCommand GetCachedCommand(long commandLineIdx)
+        {
+            return _commandCache.TryGetValue(commandLineIdx, out var command) ? command : null;
         }
 
         public new IEnumerator<GCommand> GetEnumerator()
@@ -307,6 +338,7 @@ namespace ACS_Common.GCode
                     if (itr.MoveNext())
                     {
                         var newCommand = new GCommand(itr.Current);
+                        newCommand.Index = idx;
                         // LogInfo(m, $"get command from stream, idx: {idx}, newCommand: {newCommand}");
                         Cache(idx, newCommand, true);
                         yield return newCommand;

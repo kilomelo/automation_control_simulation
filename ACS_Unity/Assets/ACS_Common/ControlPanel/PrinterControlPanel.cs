@@ -48,15 +48,15 @@ namespace ACS_Common.ControlPanel
                 _executeGCodeFileBtn.onClick.AddListener(() =>
                 {
                     if (null == _mainBoard) return;
-                    switch (_mainBoard.Status.State)
+                    switch (_mainBoard.Status.CommandState)
                     {
-                        case PrinterMainBoard.PrinterMainBoardStatus.EPrinterState.Printing:
+                        case PrinterMainBoard.PrinterMainBoardStatus.ECommandState.Printing:
                             _mainBoard.Pause();
                             break;
-                        case PrinterMainBoard.PrinterMainBoardStatus.EPrinterState.Pause:
+                        case PrinterMainBoard.PrinterMainBoardStatus.ECommandState.Pause:
                             _mainBoard.Continue();
                             break;
-                        case PrinterMainBoard.PrinterMainBoardStatus.EPrinterState.Idle:
+                        case PrinterMainBoard.PrinterMainBoardStatus.ECommandState.Idle:
                             _mainBoard.Execute();
                             break;
                     }
@@ -109,7 +109,7 @@ namespace ACS_Common.ControlPanel
             if (null != _executeGCodeFileBtnLabel)
             {
                 _executeGCodeFileBtnLabel.text =
-                    _mainBoard.Status.State == PrinterMainBoard.PrinterMainBoardStatus.EPrinterState.Printing
+                    _mainBoard.Status.CommandState == PrinterMainBoard.PrinterMainBoardStatus.ECommandState.Printing
                         ? "Pause"
                         : "Execute";
             }
