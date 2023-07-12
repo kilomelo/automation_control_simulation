@@ -36,7 +36,7 @@ namespace ACS_Common.MainBoard
                 case Def.EGCommandType.M:
                     while (true)
                     {
-                        SetCommandExecuteProgress(_status.ExecutingProgress + 0.01f);
+                        SetCommandExecuteProgress(_status.ExecutingProgress + 0.02f);
                         if (_status.ExecutingProgress >= 1f) break;
                         yield return 0;
                     }
@@ -44,7 +44,7 @@ namespace ACS_Common.MainBoard
                 case Def.EGCommandType.G:
                     while (true)
                     {
-                        SetCommandExecuteProgress(_status.ExecutingProgress + 0.005f);
+                        SetCommandExecuteProgress(_status.ExecutingProgress + 0.05f);
                         if (_status.ExecutingProgress >= 1f) break;
                         yield return 0;
                     }

@@ -16,6 +16,8 @@ namespace ACS_Common.GCode.View
     {
         [SerializeField] protected TextMeshProUGUI _textField;
         [SerializeField] protected GCodeViewScrollBar _scrollBar;
+        // 单双行背景，便于每行内容视觉对齐
+        [SerializeField] private Transform _gridBG;
         
         #region color define
 
@@ -93,7 +95,7 @@ namespace ACS_Common.GCode.View
             
             _sb.Clear();
             var i = 0;
-            var realDisplayLineCnt = Mathf.Clamp(_displayLineCnt, 1, 9999);
+            var realDisplayLineCnt = Mathf.Clamp(_displayLineCnt, 1, long.MaxValue);
             using var itr = _stream.GetEnumerator(startLineIdx);
             // LogInfo(m, $"realDisplayLineCnt: {realDisplayLineCnt}");
             while (i++ < realDisplayLineCnt && itr.MoveNext())
@@ -111,6 +113,13 @@ namespace ACS_Common.GCode.View
             // }
             // LogInfo(m, $"display text:\n{_sb}");
             _textField.text = _sb.ToString();
+            // 移动背景
+            if (null != _gridBG)
+            {
+                var gridBGPos = _gridBG.localPosition;
+                gridBGPos.y = _displayStartLineIdx % 2 == 0 ? 0 : _textField.fontSize;
+                _gridBG.localPosition = gridBGPos;
+            }
         }
 
         private void Start()
