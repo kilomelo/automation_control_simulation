@@ -221,6 +221,10 @@ namespace ACS_Common.MainBoard
         {
             const string m = nameof(Startup);
             LogMethod(m);
+            if (null != _stepMotorDriverX) _dof["x"] = new DOF("x");
+            if (null != _stepMotorDriverY) _dof["y"] = new DOF("y");
+            if (null != _stepMotorDriverZ) _dof["z"] = new DOF("z");
+            if (null != _stepMotorDriverE) _dof["e"] = new DOF("e");
             yield return SelfTest();
             SetState(PrinterMainBoardStatus.ECommandState.Idle);
         }
