@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using ACS_Common.GCode;
 
 namespace ACS_Common.MainBoard
@@ -16,15 +17,15 @@ namespace ACS_Common.MainBoard
         // 上一条命令执行完毕的时间戳
         private long _lastCommandFinishTimeStamp;
 
-        private IEnumerator RunGCommand(GCommand command)
+        private async void RunGCommand(GCommand command)
         {
             const string m = nameof(RunGCommand);
-            // LogMethod(m, $"command: {command}");
+            LogMethod(m, $"command: {command}");
             if (null == command)
             {
                 LogErr(m, "null == command");
                 SetCommandExecuteProgress(1f);
-                yield break;
+                return;
             }
             _sw.Start();
             switch (command.CommandType)
@@ -36,17 +37,17 @@ namespace ACS_Common.MainBoard
                 case Def.EGCommandType.M:
                     while (true)
                     {
-                        SetCommandExecuteProgress(_status.ExecutingProgress + 0.02f);
+                        SetCommandExecuteProgress(_status.ExecutingProgress + 0.05f);
                         if (_status.ExecutingProgress >= 1f) break;
-                        yield return 0;
+                        await Task.Delay(100);
                     }
                     break;
                 case Def.EGCommandType.G:
                     while (true)
                     {
-                        SetCommandExecuteProgress(_status.ExecutingProgress + 0.05f);
+                        SetCommandExecuteProgress(_status.ExecutingProgress + 0.02f);
                         if (_status.ExecutingProgress >= 1f) break;
-                        yield return 0;
+                        await Task.Delay(100);
                     }
                     break;
             }

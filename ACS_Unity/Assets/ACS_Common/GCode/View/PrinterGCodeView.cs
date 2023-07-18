@@ -22,7 +22,7 @@ namespace ACS_Common.GCode.View
         // private const string ColorLineIdx = "B0A597";
         // private const string ColorInvalid = "FF6666";
 
-        private PrinterMainBoard _printerMainBoard;
+        private MainBoardComp _mainBoardComp;
         private PrinterGCodeViewScrollBar _printerGCodeViewScrollBar;
         /// <summary>
         /// 是否跟随当前打印进度滚动
@@ -34,14 +34,15 @@ namespace ACS_Common.GCode.View
             get => base.DisplayLineIdx;
             set
             {
-                var deltaLine = _printerMainBoard.Status.ExecutingCommandLineIdx - value;
+                // 根据目标展示行号修改跟随显示属性
+                var deltaLine = _mainBoardComp.Status.ExecutingCommandLineIdx - value;
                 var executingLineInDisplayRange = deltaLine >= 0 && deltaLine < _displayLineCnt;
                 _locking = executingLineInDisplayRange;
                 base.DisplayLineIdx = value;
             }
         }
 
-        public void SetPrinter(PrinterMainBoard printer)
+        public void SetPrinter(MainBoardComp printer)
         {
             const string m = nameof(SetPrinter);
             if (null == printer)
@@ -50,9 +51,9 @@ namespace ACS_Common.GCode.View
                 return;
             }
             SetStreamHolder(printer);
-            _printerMainBoard = printer;
-            _printerMainBoard.OnPrintProgressUpdate += OnPrintProgressUpdate;
-            _printerMainBoard.OnStateChange += OnStateChange;
+            _mainBoardComp = printer;
+            _mainBoardComp.OnPrintProgressUpdate += OnPrintProgressUpdate;
+            _mainBoardComp.OnStateChange += OnStateChange;
         }
 
         protected override void Init()
@@ -65,10 +66,10 @@ namespace ACS_Common.GCode.View
         protected override void Clear()
         {
             base.Clear();
-            if (null != _printerMainBoard)
+            if (null != _mainBoardComp)
             {
-                _printerMainBoard.OnPrintProgressUpdate -= OnPrintProgressUpdate;
-                _printerMainBoard.OnStateChange -= OnStateChange;
+             _mainBoardComp.OnPrintProgressUpdate -= OnPrintProgressUpdate;
+             _mainBoardComp.OnStateChange -= OnStateChange;
             }
         }
 
@@ -78,17 +79,17 @@ namespace ACS_Common.GCode.View
         {
             const string m = nameof(OnPrintProgressUpdate);
             // LogMethod(m);
-            if (null == _printerMainBoard)
+            if (null == _mainBoardComp)
             {
-                LogErr(m, "null == _printerMainBoard");
+                LogErr(m, "null == _mainBoardComp");
                 return;
             }
             if (null != _currentLineProgress)
             {
-                // LogInfo(m, $"set _currentLineProgress.fillAmount to {_printerMainBoard.Status.ExecutingProgress}");
-                _currentLineProgress.fillAmount = _printerMainBoard.Status.ExecutingProgress;
+                // LogInfo(m, $"set _currentLineProgress.fillAmount to  _mainBoardComp.Status.ExecutingProgress}");
+                _currentLineProgress.fillAmount = _mainBoardComp.Status.ExecutingProgress;
             }
-            var deltaLine = _printerMainBoard.Status.ExecutingCommandLineIdx - DisplayLineIdx;
+            var deltaLine = _mainBoardComp.Status.ExecutingCommandLineIdx - DisplayLineIdx;
             // LogInfo(m, $"deltaLine: {deltaLine}");
             if (deltaLine == _lastDeltaLine) return;
             _lastDeltaLine = deltaLine;
@@ -111,7 +112,7 @@ namespace ACS_Common.GCode.View
                     _currentLineIndicator.transform.localPosition = localPos;
                     
                     if (null != _printerGCodeViewScrollBar) 
-                        _printerGCodeViewScrollBar.OnPrintProgressUpdate(_printerMainBoard.Status.ExecutingCommandLineIdx, deltaLine, executingLineInDisplayRange);
+                        _printerGCodeViewScrollBar.OnPrintProgressUpdate(_mainBoardComp.Status.ExecutingCommandLineIdx, deltaLine, executingLineInDisplayRange);
                 }
             }
             UpdateExecuteTimeText();
@@ -121,13 +122,13 @@ namespace ACS_Common.GCode.View
         {
             const string m = nameof(OnStateChange);
             // LogMethod(m);
-            if (null == _printerMainBoard)
+            if (null == _mainBoardComp)
             {
-                LogErr(m, "null == _printerMainBoard");
+                LogErr(m, "null == _mainBoardComp");
                 return;
             }
-            // LogInfo(m, $"_printerMainBoard.Status.State: {_printerMainBoard.Status.State}");
-            switch (_printerMainBoard.Status.CommandState)
+            // LogInfo(m, $ _mainBoardComp.Status.State:  _mainBoardComp.Status.State}");
+            switch  (_mainBoardComp.Status.CommandState)
             {
                 case PrinterMainBoard.PrinterMainBoardStatus.ECommandState.Idle:
                     if (null != _currentLineIndicator) _currentLineIndicator.gameObject.SetActive(false);
@@ -137,7 +138,7 @@ namespace ACS_Common.GCode.View
                     DisplayPrintLine();
                     break;
             }
-            if (null != _printerGCodeViewScrollBar) _printerGCodeViewScrollBar.OnStateChange(_printerMainBoard.Status);
+            if (null != _printerGCodeViewScrollBar) _printerGCodeViewScrollBar.OnStateChange(_mainBoardComp.Status);
             UpdateExecuteTimeText();
         }
 
@@ -157,8 +158,8 @@ namespace ACS_Common.GCode.View
             var update = DisplayLineIdx != startLineIdx;
             base.UpdateTextField(startLineIdx);
             // LogInfo(m, $"update: {update}");
-            if (update && null != _printerMainBoard &&
-                _printerMainBoard.Status.CommandState is PrinterMainBoard.PrinterMainBoardStatus.ECommandState.Printing or
+            if (update && null != _mainBoardComp &&
+             _mainBoardComp.Status.CommandState is PrinterMainBoard.PrinterMainBoardStatus.ECommandState.Printing or
                     PrinterMainBoard.PrinterMainBoardStatus.ECommandState.Pause)
                 OnPrintProgressUpdate();
         }
@@ -176,23 +177,23 @@ namespace ACS_Common.GCode.View
         {
             const string m = nameof(DisplayPrintLine);
             // LogMethod(m);
-            if (null == _printerMainBoard)
+            if (null == _mainBoardComp)
             {
-                LogErr(m, "null == _printerMainBoard");
+                LogErr(m, "null == _mainBoardComp");
                 return;
             }
-            var deltaLine = _printerMainBoard.Status.ExecutingCommandLineIdx - DisplayLineIdx;
-            // LogInfo(m, $"ExecutingCommandLineIdx: {_printerMainBoard.Status.ExecutingCommandLineIdx}, DisplayLineIdx: {DisplayLineIdx}, deltaLine: {deltaLine}");
+            var deltaLine = _mainBoardComp.Status.ExecutingCommandLineIdx - DisplayLineIdx;
+            // LogInfo(m, $"ExecutingCommandLineIdx:  _mainBoardComp.Status.ExecutingCommandLineIdx}, DisplayLineIdx: {DisplayLineIdx}, deltaLine: {deltaLine}");
             if (deltaLine >= 0 && deltaLine < _displayLineCnt) return;
             if (deltaLine < 0)
             {
-                var targetLineIdx = _printerMainBoard.Status.ExecutingCommandLineIdx;
+                var targetLineIdx = _mainBoardComp.Status.ExecutingCommandLineIdx;
                 ForceSetScrollBarPos(targetLineIdx);
                 UpdateTextField(targetLineIdx);
             }
             else
             {
-                var targetLineIdx = _printerMainBoard.Status.ExecutingCommandLineIdx - _displayLineCnt + 1;
+                var targetLineIdx = _mainBoardComp.Status.ExecutingCommandLineIdx - _displayLineCnt + 1;
                 ForceSetScrollBarPos(targetLineIdx);
                 UpdateTextField(targetLineIdx);
             }
@@ -209,11 +210,11 @@ namespace ACS_Common.GCode.View
                 _sb.Clear();
                 var i = 0;
                 var realDisplayLineCnt = Mathf.Clamp(_displayLineCnt, 1, 9999);
-                while (i++ < realDisplayLineCnt && (i + _displayStartLineIdx - 1) <= _printerMainBoard.Status.ExecutingCommandLineIdx)
+                while (i++ < realDisplayLineCnt && (i + _displayStartLineIdx - 1) <= _mainBoardComp.Status.ExecutingCommandLineIdx)
                 {
                     var cachedCommand = _stream.GetCachedCommand(i + _displayStartLineIdx - 1);
-                    if (i + _displayStartLineIdx - 1 == _printerMainBoard.Status.ExecutingCommandLineIdx &&
-                        _printerMainBoard.Status.CommandState !=
+                    if (i + _displayStartLineIdx - 1 == _mainBoardComp.Status.ExecutingCommandLineIdx &&
+                     _mainBoardComp.Status.CommandState !=
                         PrinterMainBoard.PrinterMainBoardStatus.ECommandState.Pause) break;
                     if (cachedCommand is { ExecuteTimeMilliSec: > 0 })
                     {

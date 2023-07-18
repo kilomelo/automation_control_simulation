@@ -1212,7 +1212,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: '[Idle] | [1 / 0] [----------] | Time: [0 ms]'
+  m_text: '[Idle] | [1/0] [----------] | Time: [0 ms]'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 246e72a175216f641ba94b4d1eebe37c, type: 2}
   m_sharedMaterial: {fileID: -4679394849237342344, guid: 246e72a175216f641ba94b4d1eebe37c, type: 2}
@@ -2568,7 +2568,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bf3f22a249304c2a8f1a2e5ad70c4cb5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _mainBoard: {fileID: 1937352545}
+  _mainBoardComp: {fileID: 1937352547}
   _gCodeView: {fileID: 382134786}
   _statusDisplay: {fileID: 456262782}
   _loadGCodeFileBtn: {fileID: 1134327004}
@@ -3442,7 +3442,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1937352546}
-  - component: {fileID: 1937352545}
+  - component: {fileID: 1937352547}
   m_Layer: 0
   m_Name: PrinterMainBoard
   m_TagString: Untagged
@@ -3450,22 +3450,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1937352545
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1937352544}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d9ae9174a4824e32b0ecd2c2140776f2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _stepMotorDriverX: {fileID: 1140247307}
-  _stepMotorDriverY: {fileID: 0}
-  _stepMotorDriverZ: {fileID: 0}
-  _stepMotorDriverE: {fileID: 0}
 --- !u!4 &1937352546
 Transform:
   m_ObjectHideFlags: 0
@@ -3482,6 +3466,22 @@ Transform:
   m_Father: {fileID: 1602251524}
   m_RootOrder: -1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1937352547
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1937352544}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e624ab37e5116564594a175b511cf7a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _stepMotorDriverX: {fileID: 0}
+  _stepMotorDriverY: {fileID: 0}
+  _stepMotorDriverZ: {fileID: 0}
+  _stepMotorDriverE: {fileID: 0}
 --- !u!1 &2034086808
 GameObject:
   m_ObjectHideFlags: 0

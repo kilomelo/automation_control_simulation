@@ -38,5 +38,8 @@ namespace ACS_Common.Base
         {
             Debug.LogWarning($"# {tag} # <{methodName}> {info} //========================================================================");
         }
+
+        public virtual void Init() {}
+        public virtual void Clear() {}
     }
 }

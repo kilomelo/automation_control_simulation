@@ -18,8 +18,14 @@ namespace ACS_Common.Base
             Clear();
         }
 
+        private void Update()
+        {
+            HeartBeat();
+        }
+
         protected virtual void Init() {}
         protected virtual void Clear() {}
+        protected virtual void HeartBeat() {}
 
         protected string Tag => GetType().Name;
         protected void LogMethod(string methodName, string info = null)

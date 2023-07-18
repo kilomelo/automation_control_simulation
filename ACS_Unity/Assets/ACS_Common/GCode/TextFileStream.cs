@@ -119,7 +119,8 @@ namespace ACS_Common.GCode
             _stream = fs;
             _byteBuffer = new byte[_byteBufferSize];
             _sb = new StringBuilder();
-            BuildLineIdxAsync();
+            Task.Run(BuildLineIdx);
+            // BuildLineIdxAsync();
             LogInfoStatic(m, m, $"end of constructor");
         }
         
@@ -305,7 +306,7 @@ namespace ACS_Common.GCode
         
         #region index
         /// <summary>
-        /// 构建行号索引，同步
+        /// 构建行号索引
         /// </summary>
         private void BuildLineIdx()
         {
@@ -371,19 +372,19 @@ namespace ACS_Common.GCode
             LogInfo(m, $"done, time elapsed: {sw.Elapsed.Seconds} s {sw.Elapsed.Milliseconds} ms");
         }
 
-        /// <summary>
-        /// 构建行号索引，异步
-        /// </summary>
-        private async void BuildLineIdxAsync()
-        {
-            const string m = nameof(BuildLineIdxAsync);
-            LogMethod(m);
-            await Task.Run(() =>
-            {
-                LogMethod($"Task.Run");
-                BuildLineIdx();
-            });
-        }
+        // /// <summary>
+        // /// 构建行号索引，异步
+        // /// </summary>
+        // private async void BuildLineIdxAsync()
+        // {
+        //     const string m = nameof(BuildLineIdxAsync);
+        //     LogMethod(m);
+        //     await Task.Run(() =>
+        //     {
+        //         LogMethod($"Task.Run");
+        //         BuildLineIdx();
+        //     });
+        // }
         
         /// <summary>
         /// 将node链表转为平衡搜索二叉树
