@@ -27,6 +27,7 @@ namespace ACS_Common.MainBoard
                 Printing = 4,
                 Pause = 5,
                 PrintFailed = 6,
+                Canceled = 7,
             }
             // 当前状态
             public ECommandState CommandState;
@@ -103,11 +104,17 @@ namespace ACS_Common.MainBoard
                 LogErr(m, $"state is not Idle");
                 return;
             }
-            // _printLoop = StartCoroutine(PrintLoop());
             _ts = new CancellationTokenSource();
-            _printLoop = Task.Run(PrintLoop, _ts.Token);
+            try
+            {
+                _printLoop = Task.Run<long>(() => { return PrintLoop(_ts.Token);}, _ts.Token);
+            }
+            catch (OperationCanceledException oce) {
+                LogInfo(m, "PrintLoop canceled");
+                _buffer.Stop();
+                SetState(PrinterMainBoardStatus.ECommandState.Canceled);
+            }
             LogInfo(m, $"_printLoop.Status: {_printLoop.Status}");
-            // DisplayTimerProperties();
         }
 
         /// <summary>
@@ -157,27 +164,8 @@ namespace ACS_Common.MainBoard
         {
             const string m = nameof(Stop);
             LogMethod(m);
-            if (_status.CommandState != PrinterMainBoardStatus.ECommandState.Printing && _status.CommandState != PrinterMainBoardStatus.ECommandState.Pause)
-            {
-                LogErr(m, $"state is not Printing");
-                return;
-            }
             _controlSignal = EControlSignal.Stop;
         }
-
-        /// <summary>
-        /// 执行单条命令
-        /// </summary>
-        /// <param name="command"></param>
-        private void ExecuteCommand(GCommand command)
-        {
-            const string m = nameof(ExecuteCommand);
-            LogMethod(m, $"command: {command}");
-            Task.Run(() => RunGCommand(command));
-            // _runCommand = StartCoroutine(RunGCommand(command));
-
-        }
-
         public override void Init()
         {
             const string m = nameof(Init);
@@ -190,13 +178,10 @@ namespace ACS_Common.MainBoard
         public override void Clear()
         {
             const string m = nameof(Clear);
-            LogInfo(m, $"Status: {Status}, _printLoop.Status: {_printLoop.Status}");
+            LogInfo(m, $"Status: {Status}, _printLoop.Status: {(_printLoop?.Status.ToString()??"is null")}");
             base.Clear();
-            if (_printLoop.Status == TaskStatus.Running)
-            {
-                Stop();
-                _ts.Cancel();
-            }
+            Stop();
+            _ts?.Cancel();
             _buffer?.Dispose();
         }
 
@@ -224,116 +209,72 @@ namespace ACS_Common.MainBoard
             await Task.Delay(500);
         }
 
-        private void PrintLoop()
+        private async Task<long> PrintLoop(CancellationToken ct)
         {
             const string m = nameof(PrintLoop);
-            LogMethod(m, "this is printloop method log");
+            LogMethod(m);
             SetState(PrinterMainBoardStatus.ECommandState.Waiting);
-            // if (null == Stream)
-            // {
-            //     LogErr(m, $"null == Stream");
-            //     SetState(PrinterMainBoardStatus.ECommandState.PrintFailed);
-            //     return;
-            // }
             if (null == _buffer)
             {
                 LogErr(m, $"null == _buffer");
                 SetState(PrinterMainBoardStatus.ECommandState.PrintFailed);
-                return;
+                return 0;
             }
             if (null == _buffer.Source)
             {
                 LogErr(m, $"null == _buffer.Source");
                 SetState(PrinterMainBoardStatus.ECommandState.PrintFailed);
-                return;
+                return 0;
             }
             while (_buffer.Source is { IndexBuilt: false })
             {
-                if ( _ts.Token.IsCancellationRequested)
-                {
-                    LogInfo(m, "print loop force canceled");
-                    return;
-                }
-                // await Task.Delay(100);
+                // 等待状态下cancel
+                ct.ThrowIfCancellationRequested();
+                await Task.Delay(100);
             }
             _status.CommandStreamTotalLine = _buffer.Source.TotalLines;
-            // if (null == Stream)
-            // {
-            //     LogErr(m, $"null == Stream");
-            //     SetState(PrinterMainBoardStatus.ECommandState.PrintFailed);
-            //     return;
-            // }
             SetState(PrinterMainBoardStatus.ECommandState.Printing);
             SetExecutingCommandLineIdx(0);
-            var iteral = 0;
             _sw.Reset();
             _lastCommandFinishTimeStamp = 0;
             _buffer.Start();
-            var canceled = false;
-            while (_status.ExecutingCommandLineIdx < _status.CommandStreamTotalLine && !canceled)
+            // var canceled = false;
+            while (_status.ExecutingCommandLineIdx < _status.CommandStreamTotalLine)
             {
-                if ( _ts.Token.IsCancellationRequested)
-                {
-                    LogInfo(m, "print loop force canceled");
-                    break;
-                }
+                ct.ThrowIfCancellationRequested();
                 GCommand nextCommand = null;
-                do
+                // 从buffer取得下一条命令
+                while (_buffer.GetGCommand(out nextCommand) >= 0 && null == nextCommand)
                 {
-                    if ( _ts.Token.IsCancellationRequested)
-                    {
-                        LogInfo(m, "print loop force canceled");
-                        canceled = true;
-                        break;
-                    }
-                    if (_buffer.GetGCommand(out nextCommand) >= 0 && null == nextCommand)
-                    {
-                        // LogInfo(m, "wait buffer");
-                        // await Task.Delay(100);
-                        continue;
-                    }
-                    if (null == nextCommand)
-                    {
-                        LogErr(m, $"null == nextCommand, _status.ExecutingCommandLineIdx: {_status.ExecutingCommandLineIdx}");
-                        SetState(PrinterMainBoardStatus.ECommandState.PrintFailed);
-                        return;
-                    }
-                    iteral++;
-                    if (nextCommand.CommandType is Def.EGCommandType.Invalid or Def.EGCommandType.None)
-                    {
-                        nextCommand = null;
-                        continue;
-                    }
+                    ct.ThrowIfCancellationRequested();
+                    // LogInfo(m, "wait for buffer");
+                    await Task.Delay(100);
+                    continue;
+                }
+                if (null == nextCommand)
+                {
+                    LogErr(m, $"null == nextCommand, _status.ExecutingCommandLineIdx: {_status.ExecutingCommandLineIdx}");
+                    SetState(PrinterMainBoardStatus.ECommandState.PrintFailed);
                     break;
-                } while(true);
-                SetExecutingCommandLineIdx(_status.ExecutingCommandLineIdx + iteral - 1);
-                iteral = 1;
-
-                ExecuteCommand(nextCommand);
-                while (_status.ExecutingProgress < 1f)
-                {
-                    if ( _ts.Token.IsCancellationRequested)
-                    {
-                        LogInfo(m, "print loop force canceled");
-                        canceled = true;
-                        break;
-                    }
-                    // await Task.Delay(100);
                 }
 
+                try {
+                    await RunGCommand(nextCommand, ct);
+                }
+                catch (OperationCanceledException oce) {
+                    LogInfo(m, "RunGCommand canceled");
+                    throw oce;
+                }
+                
                 if (EControlSignal.Pause == _controlSignal)
                 {
                     _controlSignal = EControlSignal.None;
                     SetState(PrinterMainBoardStatus.ECommandState.Pause);
                     while (EControlSignal.None == _controlSignal)
                     {
-                        if ( _ts.Token.IsCancellationRequested)
-                        {
-                            LogInfo(m, "print loop force canceled");
-                            canceled = true;
-                            break;
-                        }
-                        //await Task.Delay(100);
+                        // pause状态下cancel
+                        ct.ThrowIfCancellationRequested();
+                        await Task.Delay(100);
                     }
                     if (EControlSignal.Continue == _controlSignal)
                     {
@@ -344,7 +285,6 @@ namespace ACS_Common.MainBoard
                 if (EControlSignal.Stop == _controlSignal)
                 {
                     SetExecutingCommandLineIdx(-1);
-                    SetState(PrinterMainBoardStatus.ECommandState.Idle);
                     break;
                 }
             }
@@ -352,6 +292,7 @@ namespace ACS_Common.MainBoard
             SetState(PrinterMainBoardStatus.ECommandState.Idle);
             _buffer.Stop();
             LogInfo(m, "print task done");
+            return _status.ExecutingCommandLineIdx;
         }
 
         private void SetState(PrinterMainBoardStatus.ECommandState state)

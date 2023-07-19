@@ -9,12 +9,16 @@ namespace ACS_Common.MainBoard
 {
     public class GCodeBuffer : ACS_Object, IDisposable
     {
+        // protected override bool LogInfoEnable => false;
         public GCommandStream Source;
         private Queue<GCommand> _queue;
+        // 读取数据间隔
+        private const int READ_INTERVAL = 10;
+        // 检查源数据流是否可用间隔
+        private const int CHECK_SOURCE_INTERVAL = 100;
         private int _bufferSize = 20;
-        private Task _readTask;
         private long _readPos;
-        private CancellationTokenSource _ts = new CancellationTokenSource();
+        private CancellationTokenSource _ts;
 
         public GCodeBuffer(GCommandStream source)
         {
@@ -35,14 +39,15 @@ namespace ACS_Common.MainBoard
                 LogErr(m, "null == Source");
                 return;
             }
-            if (null != _readTask)
+            if (null != _ts)
             {
                 LogErr(m, "task is running");
                 return;
             }
-            _readTask = Task.Run(() => {
+            _ts = new CancellationTokenSource();
+            _readPos = 0;
+            Task.Run(() => {
                 LogInfo("readTask", "Start read");
-                _readPos = 0;
                 while (true)
                 {
                     if (_ts.Token.IsCancellationRequested)
@@ -53,17 +58,19 @@ namespace ACS_Common.MainBoard
                     if (_queue.Count >= _bufferSize || !Source.IndexBuilt)
                     {
                         // LogInfo("readTask", $"buffer queue is full, _readPos: {_readPos}");
-                        Thread.Sleep(100);
+                        Thread.Sleep(CHECK_SOURCE_INTERVAL);
                         continue;
                     }
+                    LogInfo(m, $"read {_readPos} command from source");
                     var command = Source.GetCommand(_readPos++);
+                    // 读取到了流末尾
                     if (null == command) break;
-                    lock(_queue)
+                    if (!(command.CommandType is Def.EGCommandType.Invalid or Def.EGCommandType.None))
                     {
-                        _queue.Enqueue(command);
                         // LogInfo("readTask", $"_queue.Count: {_queue.Count}, {_readPos}'s command {command}");
+                        lock(_queue) _queue.Enqueue(command);
+                        Thread.Sleep(READ_INTERVAL);
                     }
-                    Thread.Sleep(20);
                 }
                 LogInfo("readTask", $"Read done, cnt: {_readPos}");
                 _readPos = -1;
@@ -75,33 +82,39 @@ namespace ACS_Common.MainBoard
         {
             const string m = nameof(Stop);
             LogMethod(m);
-            if (null != _readTask)
-            {
-                LogInfo(m, "cancel read task");
-                _ts.Cancel();
-            }
-            _readTask = null;
+            _ts?.Cancel();
+            _ts = null;
         }
 
+        /// <summary>
+        /// 获得一条命令
+        /// </summary>
+        /// <param name="command"></param>
+        /// <returns>如果当前没有执行读取线程，则返回-1；否则返回当前已读取存入buffer的行数</returns>
         public long GetGCommand(out GCommand command)
         {
             const string m = nameof(GetGCommand);
+            // LogMethod(m);
             command = null;
+            if (null == _ts) return -1;
+            // LogInfo(m, $"_readTask.Status: {_readTask.Status}");
             if (null == _queue)
             {
                 LogErr(m, "null == _queue");
-                return 0;
+                return -1;
             }
+
             lock(_queue)
             {
                 if (_queue.Count == 0)
                 {
-                    // LogInfo(m, "buffer queue is empty");
+                    LogInfo(m, "buffer queue is empty");
                 }
                 else
                 {
                     command = _queue.Dequeue();
                 }
+                // LogInfo(m, $"command: {(command?.ToString()??"is null")}, return value: {_readPos}");
                 return _readPos;
             }
         }

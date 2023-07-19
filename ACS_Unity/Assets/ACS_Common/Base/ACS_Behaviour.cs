@@ -28,13 +28,16 @@ namespace ACS_Common.Base
         protected virtual void HeartBeat() {}
 
         protected string Tag => GetType().Name;
+        protected virtual bool LogInfoEnable => true;
         protected void LogMethod(string methodName, string info = null)
         {
+            if (!LogInfoEnable) return;
             Debug.Log($"# {Tag} # <{methodName}> {info} //--------------------------------------------------------------------------");
         }
         
         protected void LogInfo(string methodName, string info)
         {
+            if (!LogInfoEnable) return;
             Debug.Log($"# {Tag} # <{methodName}> {info}");
         }
 

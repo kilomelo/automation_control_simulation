@@ -232,6 +232,7 @@ namespace ACS_Common.GCode
     /// </summary>
     public class GCommandStream : TextFileStream, IEnumerable<GCommand>
     {
+        // protected override bool LogInfoEnable => false;
         private const int DefaultCacheCapacity = 200;
         /// <summary>
         /// 缓存大小

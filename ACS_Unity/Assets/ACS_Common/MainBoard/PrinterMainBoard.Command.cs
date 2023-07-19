@@ -1,6 +1,4 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using ACS_Common.GCode;
 
@@ -17,10 +15,10 @@ namespace ACS_Common.MainBoard
         // 上一条命令执行完毕的时间戳
         private long _lastCommandFinishTimeStamp;
 
-        private async void RunGCommand(GCommand command)
+        private async Task RunGCommand(GCommand command, CancellationToken ct)
         {
             const string m = nameof(RunGCommand);
-            LogMethod(m, $"command: {command}");
+            // LogMethod(m, $"command: {command}");
             if (null == command)
             {
                 LogErr(m, "null == command");
@@ -28,6 +26,7 @@ namespace ACS_Common.MainBoard
                 return;
             }
             _sw.Start();
+            SetExecutingCommandLineIdx(command.Index);
             switch (command.CommandType)
             {
                 case Def.EGCommandType.Invalid:
@@ -37,17 +36,19 @@ namespace ACS_Common.MainBoard
                 case Def.EGCommandType.M:
                     while (true)
                     {
-                        SetCommandExecuteProgress(_status.ExecutingProgress + 0.05f);
+                        SetCommandExecuteProgress(_status.ExecutingProgress + 0.1f);
                         if (_status.ExecutingProgress >= 1f) break;
-                        await Task.Delay(100);
+                        ct.ThrowIfCancellationRequested();
+                        await Task.Delay(10);
                     }
                     break;
                 case Def.EGCommandType.G:
                     while (true)
                     {
-                        SetCommandExecuteProgress(_status.ExecutingProgress + 0.02f);
+                        SetCommandExecuteProgress(_status.ExecutingProgress + 0.2f);
                         if (_status.ExecutingProgress >= 1f) break;
-                        await Task.Delay(100);
+                        ct.ThrowIfCancellationRequested();
+                        await Task.Delay(10);
                     }
                     break;
             }
@@ -55,7 +56,7 @@ namespace ACS_Common.MainBoard
             _status.ExecuteTimeMilliseconds = _sw.ElapsedMilliseconds;
             var timeElapsedMillisec = _status.ExecuteTimeMilliseconds - _lastCommandFinishTimeStamp;
             command.ExecuteTimeMilliSec = timeElapsedMillisec;
-            LogInfo(m, $"command [{command}] execute time: {timeElapsedMillisec}");
+            // LogInfo(m, $"command [{command}] execute time: {timeElapsedMillisec}");
             _lastCommandFinishTimeStamp = _status.ExecuteTimeMilliseconds;
         }
     }

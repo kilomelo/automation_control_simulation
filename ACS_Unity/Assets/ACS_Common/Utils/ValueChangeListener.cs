@@ -3,17 +3,17 @@ using ACS_Common.Base;
 
 namespace ACS_Common.Utils
 {
-    public class ValueChangeDelegate<T> : ACS_Object where T : IComparable
+    public class ValueChangeListener<T> : ACS_Object where T : IComparable
     {
         private T _previousValue;
         private Action _onValueChangeNoParam;
         private Action<T> _onValueChange;
-        public ValueChangeDelegate(Action onValueChangeCallback, T origValue)
+        public ValueChangeListener(Action onValueChangeCallback, T origValue)
         {
             _onValueChangeNoParam = onValueChangeCallback;
             _previousValue = origValue;
         }
-        public ValueChangeDelegate(Action<T> onValueChangeCallback, T origValue)
+        public ValueChangeListener(Action<T> onValueChangeCallback, T origValue)
         {
             _onValueChange = onValueChangeCallback;
             _previousValue = origValue;

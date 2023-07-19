@@ -44,20 +44,6 @@ namespace ACS_Common.GCode
         /// 总行数，这个值在建立索引后有效
         /// </summary>
         public long TotalLines => _totalLines;
-
-        /// <summary>
-        /// 目前位置
-        /// </summary>
-        public long Position
-        {
-            get
-            {
-                lock (_streamLock)
-                {
-                    return _stream?.Position ?? 0;
-                }
-            }
-        }
         
         /// <summary>
         /// Start of Line offset
@@ -159,7 +145,7 @@ namespace ACS_Common.GCode
             }
         }
         /// <summary>
-        /// 逐字符读取steam，不重置steam位置
+        /// 逐字符读取stream，不重置stream位置
         /// </summary>
         /// <param name="initialPos"></param>
         /// <param name="actionEachChar"></param>
@@ -245,7 +231,7 @@ namespace ACS_Common.GCode
         }
 
         /// <summary>
-        /// 逐行读取steam，不重置steam位置
+        /// 逐行读取stream，不重置stream位置
         /// 每行内容存放在_sb中，每行内容仅在ActionEachLine回调中有效
         /// </summary>
         /// <param name="initialPos">初始偏移</param>
@@ -371,20 +357,6 @@ namespace ACS_Common.GCode
             sw.Stop();
             LogInfo(m, $"done, time elapsed: {sw.Elapsed.Seconds} s {sw.Elapsed.Milliseconds} ms");
         }
-
-        // /// <summary>
-        // /// 构建行号索引，异步
-        // /// </summary>
-        // private async void BuildLineIdxAsync()
-        // {
-        //     const string m = nameof(BuildLineIdxAsync);
-        //     LogMethod(m);
-        //     await Task.Run(() =>
-        //     {
-        //         LogMethod($"Task.Run");
-        //         BuildLineIdx();
-        //     });
-        // }
         
         /// <summary>
         /// 将node链表转为平衡搜索二叉树
@@ -419,7 +391,7 @@ namespace ACS_Common.GCode
         /// <param name="middlePrev"></param>
         /// <param name="middle"></param>
         /// <param name="end"></param>
-        /// <returns>二分后的链表是否还能二分，0左右均不可二分；1左可二分右不可；2左右均可二分</returns>
+        /// <returns>二分后的链表是否还能二分，0：左右均不可二分；1：左可二分右不可；2：左右均可二分</returns>
         private int FindMiddleNode(SOLOffsetNode head, out SOLOffsetNode middlePrev, out SOLOffsetNode middle, out SOLOffsetNode end)
         {
             const string m = nameof(FindMiddleNode);
@@ -454,6 +426,11 @@ namespace ACS_Common.GCode
             return middle == middlePrev ? 0 : middle == end? 1 : 2;
         }
 
+
+        private const int POSITION_CACHE_CAPACITY = 5;
+        private long[] _positionCache = new long[POSITION_CACHE_CAPACITY * 2];
+        private const int POSITION_CHACHE_MATCH_THRESHOLD = 100;
+        private int _positionCachePtr = 0;
         /// <summary>
         /// 搜索某一行的起始位置
         /// </summary>
@@ -477,61 +454,90 @@ namespace ACS_Common.GCode
                 LogErr(m, $"lineIdx {lineIdx} out of range, Non-negative number required.");
                 return -1;
             }
-            var node = _SOLOffsetIdxTreeRoot;
-            var targetNode = node;
-            // step 1 搜索比lineIdx小的行的偏移作为搜索起始位置
-            while (true)
+            var pos = -1L;
+            var resultLineIdx = -1L;
+            var getFromCache = false;
+            // 先尝试从positionCache中获取
+            for (var i = 0; i < POSITION_CACHE_CAPACITY; i++)
             {
-                if (node.Line < lineIdx)
+                var deltaIdx = lineIdx - _positionCache[i * 2];
+                if (deltaIdx > 0 && deltaIdx < POSITION_CHACHE_MATCH_THRESHOLD)
                 {
-                    targetNode = node;
-                    if (null == node.Right)
-                    {
-                        // LogInfo(m, $"step 1, to right, but no right");
-                        break;
-                    }
-                    // LogInfo(m, $"step 1, to right");
-                    node = node.Right;
-                }
-                else if (node.Line > lineIdx)
-                {
-                    if (null == node.Left)
-                    {
-                        // LogInfo(m, $"step 1, to left, but no left");
-                        break;
-                    }
-                    // LogInfo(m, $"step 1, to left");
-                    node = node.Left;
-                }
-                // equal
-                else
-                {
-                    targetNode = node;
+                    pos = _positionCache[i * 2 + 1];
+                    resultLineIdx = _positionCache[i * 2];
+                    getFromCache = true;
+                    // LogInfo(m, $"get line position in cache, line: {lineIdx}, resultLineIdx: {resultLineIdx}, pos: {pos}");
                     break;
                 }
             }
-            // LogInfo(m, $"step 1 finish, targetNode: {targetNode}");
+            if (pos < 0)
+            {
+                var node = _SOLOffsetIdxTreeRoot;
+                var targetNode = node;
+                // step 1 搜索比lineIdx小的行的偏移作为搜索起始位置
+                while (true)
+                {
+                    if (node.Line < lineIdx)
+                    {
+                        targetNode = node;
+                        if (null == node.Right)
+                        {
+                            // LogInfo(m, $"step 1, to right, but no right");
+                            break;
+                        }
+                        // LogInfo(m, $"step 1, to right");
+                        node = node.Right;
+                    }
+                    else if (node.Line > lineIdx)
+                    {
+                        if (null == node.Left)
+                        {
+                            // LogInfo(m, $"step 1, to left, but no left");
+                            break;
+                        }
+                        // LogInfo(m, $"step 1, to left");
+                        node = node.Left;
+                    }
+                    // equal
+                    else
+                    {
+                        targetNode = node;
+                        break;
+                    }
+                }
+                // LogInfo(m, $"step 1 finish, targetNode: {targetNode}");
+                pos = targetNode.SOLOffset;
+                resultLineIdx = targetNode.Line;
+            }
             
             // step 2 往后找到第lineIdx的位置
-            var pos = targetNode.SOLOffset;
-            if (node.Line != lineIdx)
+            if (resultLineIdx != lineIdx)
             {
-                var itr = ReadEachLine(targetNode.SOLOffset, new ActionEachLine((long idx, long offset) =>
+                var itr = ReadEachLine(pos, new ActionEachLine((long idx, long offset) =>
                 {
                     // LogInfo(m, $"step 2 ActionEachLine, idx: {idx}, offset: {offset}");
                     pos = offset;
-                    if (idx + targetNode.Line == lineIdx)
+                    if (idx + resultLineIdx == lineIdx)
                     {
                         // LogInfo(m, $"ActionEachLine, find target, lineIdx: {idx}, offset: {offset}");
                     }
-                    return idx + targetNode.Line < lineIdx;
+                    return idx + resultLineIdx < lineIdx;
                 }), null);
                 while (itr.MoveNext())
                 {
-                    // search exact line pos
+                    // search exact line pos, break by ActionEachLine
                 }
+                // 结果存储到cache
+            }
+            if (!getFromCache)
+            {
+                _positionCache[_positionCachePtr * 2] = lineIdx;
+                _positionCache[_positionCachePtr * 2 + 1] = lineIdx;
+                if (++_positionCachePtr == POSITION_CACHE_CAPACITY) _positionCachePtr = 0;
+                // LogInfo(m, $"cache line pos, line: {lineIdx}, pos: {pos}, _positionCachePtr: {_positionCachePtr}");
             }
             // LogInfo(m, $"step 2 finish, pos: {pos}");
+            
             return pos;
         }
         
@@ -570,26 +576,17 @@ namespace ACS_Common.GCode
                     LogErr(m, $"idx not built");
                     yield break;
                 }
-
-                if (startLine > _totalLines)
+                if (startLine > _totalLines || startLine < 0)
                 {
-                    LogErr(m, $"startLine {startLine} out of range, total line: {_totalLines}");
+                    LogErr(m, $"startLine {startLine} out of range, valid idx is from 0 to {_totalLines}");
                     yield break;
                 }
-
-                if (startLine < 0)
-                {
-                    LogErr(m, $"startLine {startLine} out of range, Non-negative number required.");
-                    yield break;
-                }
-
                 var offset = SearchStartOfLineOffset(startLine);
                 if (offset < 0)
                 {
-                    LogErr(m, $"startLine {startLine}, indexing failed.");
+                    LogErr(m, $"indexing failed, request idx: {startLine}");
                     yield break;
                 }
-
                 _stream.Position = offset;
                 // LogInfo(m, $"_stream.Position: {_stream.Position}");
                 var sr = new StreamReader(_stream);

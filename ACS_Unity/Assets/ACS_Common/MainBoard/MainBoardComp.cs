@@ -29,9 +29,9 @@ namespace ACS_Common.MainBoard
         }
 
         private PrinterMainBoard _mainBoard;
-        private ValueChangeDelegate<PrinterMainBoard.PrinterMainBoardStatus.ECommandState> _mainBoardStatusState;
-        private ValueChangeDelegate<float> _mainBoardStatusProgress;
-        private ValueChangeDelegate<long> _mainBoardStatusLineIdx;
+        private ValueChangeListener<PrinterMainBoard.PrinterMainBoardStatus.ECommandState> _mainBoardStatusState;
+        private ValueChangeListener<float> _mainBoardStatusProgress;
+        private ValueChangeListener<long> _mainBoardStatusLineIdx;
         
         /// <summary>
         /// 载入GCode文件
@@ -122,9 +122,9 @@ namespace ACS_Common.MainBoard
             base.Init();
             _mainBoard = new PrinterMainBoard();
             _mainBoard.Init();
-            _mainBoardStatusState = new ValueChangeDelegate<PrinterMainBoard.PrinterMainBoardStatus.ECommandState>(() => OnStateChange?.Invoke(), _mainBoard.Status.CommandState);
-            _mainBoardStatusLineIdx = new ValueChangeDelegate<long>(() => OnPrintProgressUpdate.Invoke(), _mainBoard.Status.ExecutingCommandLineIdx);
-            _mainBoardStatusProgress = new ValueChangeDelegate<float>(() => OnPrintProgressUpdate.Invoke(), _mainBoard.Status.ExecutingProgress);
+            _mainBoardStatusState = new ValueChangeListener<PrinterMainBoard.PrinterMainBoardStatus.ECommandState>(() => OnStateChange?.Invoke(), _mainBoard.Status.CommandState);
+            _mainBoardStatusLineIdx = new ValueChangeListener<long>(() => OnPrintProgressUpdate.Invoke(), _mainBoard.Status.ExecutingCommandLineIdx);
+            _mainBoardStatusProgress = new ValueChangeListener<float>(() => OnPrintProgressUpdate.Invoke(), _mainBoard.Status.ExecutingProgress);
         }
 
         protected override void Clear()
