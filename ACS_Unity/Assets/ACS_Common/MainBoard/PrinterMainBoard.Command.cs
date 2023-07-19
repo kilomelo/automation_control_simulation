@@ -36,7 +36,8 @@ namespace ACS_Common.MainBoard
                 case Def.EGCommandType.M:
                     while (true)
                     {
-                        SetCommandExecuteProgress(_status.ExecutingProgress + 0.1f);
+                        var delta = 0.01f * Random.Range(1f, 5f);
+                        SetCommandExecuteProgress(_status.ExecutingProgress + delta);
                         if (_status.ExecutingProgress >= 1f) break;
                         ct.ThrowIfCancellationRequested();
                         await Task.Delay(10);
@@ -45,7 +46,8 @@ namespace ACS_Common.MainBoard
                 case Def.EGCommandType.G:
                     while (true)
                     {
-                        SetCommandExecuteProgress(_status.ExecutingProgress + 0.2f);
+                        var delta = 0.015f * Random.Range(1f, 5f);
+                        SetCommandExecuteProgress(_status.ExecutingProgress + delta);
                         if (_status.ExecutingProgress >= 1f) break;
                         ct.ThrowIfCancellationRequested();
                         await Task.Delay(10);

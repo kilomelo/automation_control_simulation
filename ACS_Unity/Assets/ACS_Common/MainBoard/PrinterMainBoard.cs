@@ -317,7 +317,7 @@ namespace ACS_Common.MainBoard
         private void SetCommandExecuteProgress(float progress)
         {
             const string m = nameof(SetCommandExecuteProgress);
-            // LogMethod(m, $"progress: {progress}");
+            LogMethod(m, $"progress: {progress}");
             _status.ExecutingProgress = progress;
         }
     }

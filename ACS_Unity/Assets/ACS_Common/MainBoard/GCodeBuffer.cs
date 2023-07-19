@@ -61,7 +61,7 @@ namespace ACS_Common.MainBoard
                         Thread.Sleep(CHECK_SOURCE_INTERVAL);
                         continue;
                     }
-                    LogInfo(m, $"read {_readPos} command from source");
+                    // LogInfo(m, $"read {_readPos} command from source");
                     var command = Source.GetCommand(_readPos++);
                     // 读取到了流末尾
                     if (null == command) break;
